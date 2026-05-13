@@ -13,10 +13,18 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get a single anime by ID
+// Get a single anime by ID or Slug
 router.get('/:id', async (req, res) => {
   try {
-    const anime = await Anime.findById(req.params.id);
+    let anime;
+    if (req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      anime = await Anime.findById(req.params.id);
+    }
+    
+    if (!anime) {
+      anime = await Anime.findOne({ slug: req.params.id });
+    }
+
     if (!anime) return res.status(404).json({ message: 'Anime not found' });
     res.json(anime);
   } catch (error) {
@@ -26,7 +34,12 @@ router.get('/:id', async (req, res) => {
 
 // Create an anime (Admin only - for now just basic)
 router.post('/', async (req, res) => {
-  const anime = new Anime(req.body);
+  const data = { ...req.body };
+  if (!data.slug && data.title) {
+    data.slug = data.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+  }
+  
+  const anime = new Anime(data);
   try {
     const newAnime = await anime.save();
     res.status(201).json(newAnime);

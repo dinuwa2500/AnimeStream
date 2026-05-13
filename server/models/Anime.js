@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const animeSchema = new mongoose.Schema({
   title: { type: String, required: true },
+  slug: { type: String, required: true, unique: true },
   description: { type: String, required: true },
   posterUrl: { type: String, required: true },
   bannerUrl: { type: String },

@@ -52,14 +52,14 @@ const Hero = ({ anime }) => {
 
         <div className="flex flex-wrap items-center gap-4">
           <button 
-            onClick={() => navigate(`/anime/${anime._id}`)}
+            onClick={() => navigate(`/anime/${anime.slug || anime._id}`)}
             className="flex items-center gap-3 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-2xl font-bold transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
           >
             <Play className="w-5 h-5 fill-current" />
             WATCH NOW
           </button>
           <button 
-            onClick={() => navigate(`/anime/${anime._id}`)}
+            onClick={() => navigate(`/anime/${anime.slug || anime._id}`)}
             className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white px-8 py-4 rounded-2xl font-bold transition-all"
           >
             <Info className="w-5 h-5" />

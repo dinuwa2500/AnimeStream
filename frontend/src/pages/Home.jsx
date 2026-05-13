@@ -61,7 +61,7 @@ const Home = () => {
             {latestAnime.map((anime) => (
               <AnimeCard 
                 key={anime._id} 
-                id={anime._id}
+                id={anime.slug || anime._id}
                 title={anime.title}
                 image={anime.posterUrl}
                 rating={anime.rating}
@@ -90,7 +90,7 @@ const Home = () => {
             {[...latestAnime].reverse().map((anime) => (
               <AnimeCard 
                 key={anime._id} 
-                id={anime._id}
+                id={anime.slug || anime._id}
                 title={anime.title}
                 image={anime.posterUrl}
                 rating={anime.rating}
