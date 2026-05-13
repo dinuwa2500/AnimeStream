@@ -5,33 +5,42 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import VideoPlayer from '../components/VideoPlayer';
 import API_BASE_URL from '../api/config';
+import { useNavigate } from 'react-router-dom';
 
 const AnimeDetails = () => {
   const { id } = useParams();
   const [activeSeason, setActiveSeason] = useState(1);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(null);
   const [anime, setAnime] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchAnimeDetails = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/animes/${id}`);
-        const data = await response.json();
-        setAnime(data);
+        const [detailsRes, allRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/animes/${id}`),
+          fetch(`${API_BASE_URL}/animes`)
+        ]);
         
-        // Auto-select first episode of first season if available
-        if (data.seasons && data.seasons.length > 0 && data.seasons[0].episodes.length > 0) {
-          setCurrentVideoUrl(data.seasons[0].episodes[0].videoUrl);
+        const detailsData = await detailsRes.json();
+        const allData = await allRes.json();
+        
+        setAnime(detailsData);
+        setRecommendations(allData.filter(a => a._id !== detailsData._id).slice(0, 5));
+        
+        if (detailsData.seasons && detailsData.seasons.length > 0 && detailsData.seasons[0].episodes.length > 0) {
+          setCurrentVideoUrl(detailsData.seasons[0].episodes[0].videoUrl);
         }
       } catch (error) {
-        console.error('Error fetching anime details:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnimeDetails();
+    fetchData();
   }, [id]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -151,21 +160,33 @@ const AnimeDetails = () => {
         <div className="space-y-8">
           <h2 className="text-2xl font-bold">You might also like</h2>
           <div className="grid gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex gap-4 group cursor-pointer">
-                <div className="w-20 aspect-[3/4] rounded-xl overflow-hidden shrink-0">
-                  <img src="https://m.media-amazon.com/images/M/MV5BMmIwZjg1Y2ItNDBjMy00ZjlhLWE4ZGUtYjVjZGI0NmZiY2IwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg" className="w-full h-full object-cover" alt="Rec" />
+            {recommendations.map((rec) => (
+              <div 
+                key={rec._id} 
+                onClick={() => {
+                  navigate(`/anime/${rec.slug || rec._id}`);
+                  window.scrollTo(0, 0);
+                }}
+                className="flex gap-4 group cursor-pointer"
+              >
+                <div className="w-20 aspect-[3/4] rounded-xl overflow-hidden shrink-0 border border-white/5">
+                  <img src={rec.posterUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={rec.title} />
                 </div>
                 <div className="flex flex-col justify-center">
-                  <h4 className="font-bold text-sm group-hover:text-primary transition-colors">One Piece</h4>
-                  <p className="text-xs text-gray-500 mt-1">Adventure, Action</p>
+                  <h4 className="font-bold text-sm group-hover:text-primary transition-colors line-clamp-1">{rec.title}</h4>
+                  <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">
+                    {Array.isArray(rec.genres) ? rec.genres.join(', ') : rec.genres}
+                  </p>
                   <div className="flex items-center gap-1 mt-2">
                     <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                    <span className="text-[10px] font-bold">9.2</span>
+                    <span className="text-[10px] font-bold">{rec.rating}</span>
                   </div>
                 </div>
               </div>
             ))}
+            {recommendations.length === 0 && (
+              <p className="text-gray-500 text-sm italic">No other series found.</p>
+            )}
           </div>
         </div>
       </main>
