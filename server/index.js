@@ -35,10 +35,20 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ Connected to MongoDB Atlas'))
   .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-// Basic API Routes
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'AnimeStream API is running' });
-});
+// Health Check Endpoints
+const healthCheck = (req, res) => {
+  const status = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    env: process.env.NODE_ENV || 'development'
+  };
+  res.json(status);
+};
+
+app.get('/health', healthCheck);
+app.get('/api/health', healthCheck);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
