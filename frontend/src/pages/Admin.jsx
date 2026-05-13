@@ -108,6 +108,83 @@ const Admin = () => {
     }
   };
 
+  const uploadToGofile = (file, sIdx, eIdx) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // 1. Get Server
+        const serverRes = await fetch('https://api.gofile.io/getServer');
+        const serverData = await serverRes.json();
+        if (serverData.status !== 'ok') throw new Error('Could not get Gofile server');
+        const server = serverData.data.server;
+
+        // 2. Upload with Progress
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://${server}.gofile.io/uploadFile`, true);
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(prev => ({
+              ...prev,
+              episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: progress }
+            }));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            if (response.status === 'ok') {
+              // Gofile returns a downloadPage, we want to store that
+              resolve(response.data.downloadPage);
+            } else {
+              reject(new Error(response.message || 'Gofile upload failed'));
+            }
+          } else {
+            reject(new Error('Gofile upload failed'));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during Gofile upload'));
+        xhr.send(formData);
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
+  const handleFileChange = async (e, sIdx, eIdx) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const downloadUrl = await uploadToGofile(file, sIdx, eIdx);
+      const newSeasons = [...animeData.seasons];
+      newSeasons[sIdx].episodes[eIdx].videoUrl = downloadUrl;
+      setAnimeData({ ...animeData, seasons: newSeasons });
+      
+      setUploadProgress(prev => {
+        const newEpisodes = { ...prev.episodes };
+        delete newEpisodes[`v-${sIdx}-${eIdx}`];
+        return { ...prev, episodes: newEpisodes };
+      });
+      
+      alert("Video Uploaded to Gofile! 🚀");
+    } catch (error) {
+      console.error(error);
+      alert("Gofile Upload Error: " + error.message);
+      setUploadProgress(prev => {
+        const newEpisodes = { ...prev.episodes };
+        delete newEpisodes[`v-${sIdx}-${eIdx}`];
+        return { ...prev, episodes: newEpisodes };
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -229,11 +306,17 @@ const Admin = () => {
                       }}
                     />
                     {uploadProgress.poster > 0 && (
-                      <div className="w-full bg-white/10 h-2 rounded-full mt-2 overflow-hidden">
-                        <div 
-                          className="bg-primary h-full transition-all duration-300" 
-                          style={{ width: `${uploadProgress.poster}%` }}
-                        />
+                      <div className="w-full space-y-1 mt-4">
+                        <div className="flex justify-between text-[10px] font-bold text-primary uppercase tracking-widest">
+                          <span>Uploading Poster</span>
+                          <span>{uploadProgress.poster}%</span>
+                        </div>
+                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                          <div 
+                            className="bg-gradient-to-r from-primary to-secondary h-full transition-all duration-300 shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]" 
+                            style={{ width: `${uploadProgress.poster}%` }}
+                          />
+                        </div>
                       </div>
                     )}
                     {animeData.posterUrl && <p className="text-xs text-green-500 font-medium">Poster uploaded! ✅</p>}
@@ -259,11 +342,17 @@ const Admin = () => {
                       }}
                     />
                     {uploadProgress.banner > 0 && (
-                      <div className="w-full bg-white/10 h-2 rounded-full mt-2 overflow-hidden">
-                        <div 
-                          className="bg-primary h-full transition-all duration-300" 
-                          style={{ width: `${uploadProgress.banner}%` }}
-                        />
+                      <div className="w-full space-y-1 mt-4">
+                        <div className="flex justify-between text-[10px] font-bold text-secondary uppercase tracking-widest">
+                          <span>Uploading Banner</span>
+                          <span>{uploadProgress.banner}%</span>
+                        </div>
+                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                          <div 
+                            className="bg-gradient-to-r from-secondary to-primary h-full transition-all duration-300 shadow-[0_0_10px_rgba(var(--secondary-rgb),0.5)]" 
+                            style={{ width: `${uploadProgress.banner}%` }}
+                          />
+                        </div>
                       </div>
                     )}
                     {animeData.bannerUrl && <p className="text-xs text-green-500 font-medium">Banner uploaded! ✅</p>}
@@ -322,33 +411,31 @@ const Admin = () => {
                         <div className="flex flex-col gap-4 w-full">
                           {/* Video Upload */}
                           <div className="space-y-2">
-                            <label className="text-[10px] text-gray-500 uppercase font-bold">Video File</label>
-                            <UploadButton
-                              endpoint="videoUploader"
-                              url={`${API_BASE_URL}/uploadthing`}
-                              onUploadProgress={(progress) => {
-                                setUploadProgress(prev => ({
-                                  ...prev,
-                                  episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: progress }
-                                }));
-                              }}
-                              onClientUploadComplete={(res) => {
-                                const newSeasons = [...animeData.seasons];
-                                newSeasons[sIdx].episodes[eIdx].videoUrl = res[0].url;
-                                setAnimeData({...animeData, seasons: newSeasons});
-                                setUploadProgress(prev => {
-                                  const newEpisodes = { ...prev.episodes };
-                                  delete newEpisodes[`v-${sIdx}-${eIdx}`];
-                                  return { ...prev, episodes: newEpisodes };
-                                });
-                              }}
-                              appearance={{
-                                button: "ut-ready:bg-primary ut-uploading:cursor-not-allowed bg-white/5 text-[10px] h-8 px-3 rounded-lg border border-white/10 w-full",
-                              }}
-                            />
+                            <label className="text-[10px] text-gray-500 uppercase font-bold">Video File (Gofile.io)</label>
+                            <div className="relative">
+                              <input 
+                                type="file" 
+                                id={`file-${sIdx}-${eIdx}`}
+                                className="hidden"
+                                onChange={(e) => handleFileChange(e, sIdx, eIdx)}
+                                accept="video/*"
+                              />
+                              <label 
+                                htmlFor={`file-${sIdx}-${eIdx}`}
+                                className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg h-8 px-3 text-[10px] font-bold cursor-pointer transition-all w-full"
+                              >
+                                {uploadProgress.episodes[`v-${sIdx}-${eIdx}`] > 0 ? 'UPLOADING...' : 'SELECT VIDEO'}
+                              </label>
+                            </div>
                             {uploadProgress.episodes[`v-${sIdx}-${eIdx}`] > 0 && (
-                              <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
-                                <div className="bg-primary h-full transition-all" style={{ width: `${uploadProgress.episodes[`v-${sIdx}-${eIdx}`]}%` }} />
+                              <div className="w-full space-y-1">
+                                <div className="flex justify-between text-[8px] font-black text-primary uppercase tracking-tighter">
+                                  <span>GOFILE</span>
+                                  <span>{uploadProgress.episodes[`v-${sIdx}-${eIdx}`]}%</span>
+                                </div>
+                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden shadow-inner">
+                                  <div className="bg-primary h-full transition-all" style={{ width: `${uploadProgress.episodes[`v-${sIdx}-${eIdx}`]}%` }} />
+                                </div>
                               </div>
                             )}
                           </div>
@@ -378,10 +465,22 @@ const Admin = () => {
                               appearance={{
                                 button: "ut-ready:bg-secondary/50 ut-uploading:cursor-not-allowed bg-white/5 text-[10px] h-8 px-3 rounded-lg border border-white/10 w-full",
                               }}
+                              content={{
+                                button({ isUploading }) {
+                                  if (isUploading) return "UPDATING...";
+                                  return "UPLOAD THUMB";
+                                },
+                              }}
                             />
                             {uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`] > 0 && (
-                              <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
-                                <div className="bg-secondary h-full transition-all" style={{ width: `${uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`]}%` }} />
+                              <div className="w-full space-y-1">
+                                <div className="flex justify-between text-[8px] font-black text-secondary uppercase tracking-tighter">
+                                  <span>THUMB</span>
+                                  <span>{uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`]}%</span>
+                                </div>
+                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden shadow-inner">
+                                  <div className="bg-secondary h-full transition-all" style={{ width: `${uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`]}%` }} />
+                                </div>
                               </div>
                             )}
                           </div>
