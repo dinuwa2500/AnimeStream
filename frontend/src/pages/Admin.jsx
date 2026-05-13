@@ -20,9 +20,16 @@ const Admin = () => {
       {
         seasonNumber: 1,
         title: 'Season 1',
-        episodes: [{ episodeNumber: 1, title: '', videoUrl: '', duration: '24m' }]
+        episodes: [{ episodeNumber: 1, title: '', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
       }
     ]
+  });
+
+  const [uploadProgress, setUploadProgress] = useState({
+    poster: 0,
+    banner: 0,
+    episodes: {}, // key: `v-${sIdx}-${eIdx}`
+    thumbnails: {} // key: `t-${sIdx}-${eIdx}`
   });
 
   const handleAddSeason = () => {
@@ -33,7 +40,7 @@ const Admin = () => {
         {
           seasonNumber: animeData.seasons.length + 1,
           title: `Season ${animeData.seasons.length + 1}`,
-          episodes: [{ episodeNumber: 1, title: '', videoUrl: '', duration: '24m' }]
+          episodes: [{ episodeNumber: 1, title: '', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
         }
       ]
     });
@@ -45,6 +52,7 @@ const Admin = () => {
       episodeNumber: newSeasons[seasonIndex].episodes.length + 1,
       title: '',
       videoUrl: '',
+      thumbnailUrl: '',
       duration: '24m'
     });
     setAnimeData({ ...animeData, seasons: newSeasons });
@@ -86,7 +94,7 @@ const Admin = () => {
             {
               seasonNumber: 1,
               title: 'Season 1',
-              episodes: [{ episodeNumber: 1, title: '', videoUrl: '', duration: '24m' }]
+              episodes: [{ episodeNumber: 1, title: '', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
             }
           ]
         });
@@ -206,12 +214,28 @@ const Admin = () => {
                   <div className="border-2 border-dashed border-white/10 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 bg-white/5">
                     <UploadButton
                       endpoint="imageUploader"
+                      url={`${API_BASE_URL}/uploadthing`}
+                      onUploadProgress={(progress) => {
+                        setUploadProgress(prev => ({ ...prev, poster: progress }));
+                      }}
                       onClientUploadComplete={(res) => {
                         setAnimeData({...animeData, posterUrl: res[0].url});
-                        alert("Upload Completed");
+                        setUploadProgress(prev => ({ ...prev, poster: 0 }));
+                        alert("Poster Uploaded ✅");
                       }}
-                      onUploadError={(error) => alert(`ERROR! ${error.message}`)}
+                      onUploadError={(error) => {
+                        setUploadProgress(prev => ({ ...prev, poster: 0 }));
+                        alert(`ERROR! ${error.message}`);
+                      }}
                     />
+                    {uploadProgress.poster > 0 && (
+                      <div className="w-full bg-white/10 h-2 rounded-full mt-2 overflow-hidden">
+                        <div 
+                          className="bg-primary h-full transition-all duration-300" 
+                          style={{ width: `${uploadProgress.poster}%` }}
+                        />
+                      </div>
+                    )}
                     {animeData.posterUrl && <p className="text-xs text-green-500 font-medium">Poster uploaded! ✅</p>}
                   </div>
                 </div>
@@ -220,12 +244,28 @@ const Admin = () => {
                   <div className="border-2 border-dashed border-white/10 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 bg-white/5">
                     <UploadButton
                       endpoint="bannerUploader"
+                      url={`${API_BASE_URL}/uploadthing`}
+                      onUploadProgress={(progress) => {
+                        setUploadProgress(prev => ({ ...prev, banner: progress }));
+                      }}
                       onClientUploadComplete={(res) => {
                         setAnimeData({...animeData, bannerUrl: res[0].url});
-                        alert("Banner Uploaded");
+                        setUploadProgress(prev => ({ ...prev, banner: 0 }));
+                        alert("Banner Uploaded ✅");
                       }}
-                      onUploadError={(error) => alert(`ERROR! ${error.message}`)}
+                      onUploadError={(error) => {
+                        setUploadProgress(prev => ({ ...prev, banner: 0 }));
+                        alert(`ERROR! ${error.message}`);
+                      }}
                     />
+                    {uploadProgress.banner > 0 && (
+                      <div className="w-full bg-white/10 h-2 rounded-full mt-2 overflow-hidden">
+                        <div 
+                          className="bg-primary h-full transition-all duration-300" 
+                          style={{ width: `${uploadProgress.banner}%` }}
+                        />
+                      </div>
+                    )}
                     {animeData.bannerUrl && <p className="text-xs text-green-500 font-medium">Banner uploaded! ✅</p>}
                   </div>
                 </div>
@@ -279,22 +319,77 @@ const Admin = () => {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <UploadButton
-                            endpoint="videoUploader"
-                            onClientUploadComplete={(res) => {
-                              const newSeasons = [...animeData.seasons];
-                              newSeasons[sIdx].episodes[eIdx].videoUrl = res[0].url;
-                              setAnimeData({...animeData, seasons: newSeasons});
-                              alert("Video Uploaded!");
-                            }}
-                            appearance={{
-                              button: "ut-ready:bg-primary ut-uploading:cursor-not-allowed bg-white/5 text-[10px] h-8 px-3 rounded-lg border border-white/10",
-                            }}
-                          />
+                        <div className="flex flex-col gap-4 w-full">
+                          {/* Video Upload */}
+                          <div className="space-y-2">
+                            <label className="text-[10px] text-gray-500 uppercase font-bold">Video File</label>
+                            <UploadButton
+                              endpoint="videoUploader"
+                              url={`${API_BASE_URL}/uploadthing`}
+                              onUploadProgress={(progress) => {
+                                setUploadProgress(prev => ({
+                                  ...prev,
+                                  episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: progress }
+                                }));
+                              }}
+                              onClientUploadComplete={(res) => {
+                                const newSeasons = [...animeData.seasons];
+                                newSeasons[sIdx].episodes[eIdx].videoUrl = res[0].url;
+                                setAnimeData({...animeData, seasons: newSeasons});
+                                setUploadProgress(prev => {
+                                  const newEpisodes = { ...prev.episodes };
+                                  delete newEpisodes[`v-${sIdx}-${eIdx}`];
+                                  return { ...prev, episodes: newEpisodes };
+                                });
+                              }}
+                              appearance={{
+                                button: "ut-ready:bg-primary ut-uploading:cursor-not-allowed bg-white/5 text-[10px] h-8 px-3 rounded-lg border border-white/10 w-full",
+                              }}
+                            />
+                            {uploadProgress.episodes[`v-${sIdx}-${eIdx}`] > 0 && (
+                              <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                                <div className="bg-primary h-full transition-all" style={{ width: `${uploadProgress.episodes[`v-${sIdx}-${eIdx}`]}%` }} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Thumbnail Upload */}
+                          <div className="space-y-2">
+                            <label className="text-[10px] text-gray-500 uppercase font-bold">Thumbnail</label>
+                            <UploadButton
+                              endpoint="imageUploader"
+                              url={`${API_BASE_URL}/uploadthing`}
+                              onUploadProgress={(progress) => {
+                                setUploadProgress(prev => ({
+                                  ...prev,
+                                  thumbnails: { ...prev.thumbnails, [`t-${sIdx}-${eIdx}`]: progress }
+                                }));
+                              }}
+                              onClientUploadComplete={(res) => {
+                                const newSeasons = [...animeData.seasons];
+                                newSeasons[sIdx].episodes[eIdx].thumbnailUrl = res[0].url;
+                                setAnimeData({...animeData, seasons: newSeasons});
+                                setUploadProgress(prev => {
+                                  const newThumbs = { ...prev.thumbnails };
+                                  delete newThumbs[`t-${sIdx}-${eIdx}`];
+                                  return { ...prev, thumbnails: newThumbs };
+                                });
+                              }}
+                              appearance={{
+                                button: "ut-ready:bg-secondary/50 ut-uploading:cursor-not-allowed bg-white/5 text-[10px] h-8 px-3 rounded-lg border border-white/10 w-full",
+                              }}
+                            />
+                            {uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`] > 0 && (
+                              <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                                <div className="bg-secondary h-full transition-all" style={{ width: `${uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`]}%` }} />
+                              </div>
+                            )}
+                          </div>
+
                           <input 
                             type="text"
-                            placeholder="Or paste URL"
-                            className="bg-transparent text-xs focus:outline-none w-full border-b border-white/5"
+                            placeholder="Video URL"
+                            className="bg-transparent text-xs focus:outline-none w-full border-b border-white/5 pb-1"
                             value={ep.videoUrl}
                             onChange={(e) => {
                               const newSeasons = [...animeData.seasons];
@@ -302,6 +397,7 @@ const Admin = () => {
                               setAnimeData({...animeData, seasons: newSeasons});
                             }}
                           />
+                        </div>
                         </div>
                         <div className="flex justify-end">
                           <button className="text-gray-600 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>

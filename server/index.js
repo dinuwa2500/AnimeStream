@@ -21,9 +21,6 @@ app.use(
   "/api/uploadthing",
   createRouteHandler({
     router: uploadRouter,
-    config: {
-      uploadthingSecret: process.env.UPLOADTHING_SECRET,
-    },
   })
 );
 
