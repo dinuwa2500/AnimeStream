@@ -22,7 +22,16 @@ const Home = () => {
       }
     };
 
+    const trackVisit = async () => {
+      try {
+        await fetch(`${API_BASE_URL}/stats/track`, { method: 'POST' });
+      } catch (error) {
+        // Silent fail for tracking
+      }
+    };
+
     fetchAnimes();
+    trackVisit();
   }, []);
 
   return (

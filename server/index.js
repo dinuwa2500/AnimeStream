@@ -6,6 +6,7 @@ import { createRouteHandler } from "uploadthing/express";
 import { uploadRouter } from "./uploadthing.js";
 
 import animeRoutes from './routes/animeRoutes.js';
+import Visitor from './models/Visitor.js';
 
 dotenv.config();
 
@@ -26,6 +27,55 @@ app.use(
 
 // Anime Routes
 app.use('/api/animes', animeRoutes);
+
+// Visitor Tracking Logic
+app.post('/api/stats/track', async (req, res) => {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  
+  try {
+    // Basic IP check to avoid duplicates too frequently
+    let visitor = await Visitor.findOne({ ip });
+    
+    if (visitor) {
+      visitor.visitCount += 1;
+      visitor.lastVisit = new Date();
+      await visitor.save();
+      return res.json({ message: 'Visit updated' });
+    }
+
+    // New visitor - get geo data
+    const geoRes = await fetch(`http://ip-api.com/json/${ip}`);
+    const geoData = await geoRes.json();
+
+    visitor = new Visitor({
+      ip,
+      country: geoData.country || 'Unknown',
+      countryCode: geoData.countryCode || '??',
+      city: geoData.city || 'Unknown'
+    });
+
+    await visitor.save();
+    res.json({ message: 'Visit logged' });
+  } catch (error) {
+    console.error('Tracking error:', error);
+    res.status(500).json({ error: 'Failed to track visit' });
+  }
+});
+
+// Stats Retrieval (Protected)
+app.get('/api/stats', async (req, res) => {
+  const password = req.headers['x-stats-password'];
+  if (password !== process.env.STATS_PASSWORD) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const visitors = await Visitor.find().sort({ lastVisit: -1 });
+    res.json(visitors);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI)

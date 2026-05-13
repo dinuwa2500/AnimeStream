@@ -4,6 +4,7 @@ import { HelmetProvider, Helmet } from 'react-helmet-async';
 import Home from './pages/Home';
 import Admin from './pages/Admin';
 import AnimeDetails from './pages/AnimeDetails';
+import Stats from './pages/Stats';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/anime/:id" element={<AnimeDetails />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/stats" element={<Stats />} />
         </Routes>
       </Router>
     </HelmetProvider>
