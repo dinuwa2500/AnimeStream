@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { UploadButton } from "@uploadthing/react";
-import { Plus, Trash2, Save, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Save, Image as ImageIcon, List } from 'lucide-react';
 import Navbar from '../components/Navbar';
 
 import API_BASE_URL from '../api/config';
 
 const Admin = () => {
+  const [existingAnimes, setExistingAnimes] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [animeData, setAnimeData] = useState({
     title: '',
     description: '',
@@ -31,6 +34,53 @@ const Admin = () => {
     episodes: {}, // key: `v-${sIdx}-${eIdx}`
     thumbnails: {} // key: `t-${sIdx}-${eIdx}`
   });
+
+  const fetchExistingAnimes = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/animes`);
+      const data = await response.json();
+      setExistingAnimes(data);
+    } catch (error) {
+      console.error('Error fetching animes:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchExistingAnimes();
+  }, []);
+
+  const handleEdit = (anime) => {
+    setAnimeData({
+      ...anime,
+      genres: Array.isArray(anime.genres) ? anime.genres.join(', ') : anime.genres
+    });
+    setEditingId(anime._id);
+    setIsEditing(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleReset = () => {
+    setAnimeData({
+      title: '',
+      description: '',
+      posterUrl: '',
+      bannerUrl: '',
+      genres: [],
+      rating: 0,
+      status: 'Ongoing',
+      type: 'TV',
+      releaseDate: new Date().toISOString().split('T')[0],
+      seasons: [
+        {
+          seasonNumber: 1,
+          title: 'Season 1',
+          episodes: [{ episodeNumber: 1, title: '', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
+        }
+      ]
+    });
+    setIsEditing(false);
+    setEditingId(null);
+  };
 
   const handleAddSeason = () => {
     setAnimeData({
@@ -70,8 +120,11 @@ const Admin = () => {
     };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/animes`, {
-        method: 'POST',
+      const url = isEditing ? `${API_BASE_URL}/animes/${editingId}` : `${API_BASE_URL}/animes`;
+      const method = isEditing ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -79,25 +132,9 @@ const Admin = () => {
       });
 
       if (response.ok) {
-        alert('Anime saved successfully! 🚀');
-        setAnimeData({
-          title: '',
-          description: '',
-          posterUrl: '',
-          bannerUrl: '',
-          genres: [],
-          rating: 0,
-          status: 'Ongoing',
-          type: 'TV',
-          releaseDate: new Date().toISOString().split('T')[0],
-          seasons: [
-            {
-              seasonNumber: 1,
-              title: 'Season 1',
-              episodes: [{ episodeNumber: 1, title: '', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
-            }
-          ]
-        });
+        alert(isEditing ? 'Anime updated successfully! 🚀' : 'Anime saved successfully! 🚀');
+        if (!isEditing) handleReset();
+        fetchExistingAnimes();
       } else {
         const error = await response.json();
         alert(`Error: ${error.message}`);
@@ -189,19 +226,74 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="pt-24 px-6 md:px-16 pb-20">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-              ADMIN DASHBOARD
-            </h1>
-            <button 
-              onClick={handleSubmit}
-              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20"
-            >
-              <Save className="w-5 h-5" />
-              SAVE ANIME
-            </button>
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-4 gap-8">
+          
+          {/* Sidebar - Existing Anime */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <List className="w-5 h-5 text-primary" /> EXISTING
+              </h2>
+              <button 
+                onClick={handleReset}
+                className="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all"
+                title="Add New Anime"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
+              {existingAnimes.map((anime) => (
+                <div 
+                  key={anime._id}
+                  onClick={() => handleEdit(anime)}
+                  className={`glass p-3 rounded-2xl flex gap-3 cursor-pointer transition-all border group ${
+                    editingId === anime._id ? 'border-primary/50 bg-primary/5' : 'border-white/5 hover:border-white/10'
+                  }`}
+                >
+                  <div className="w-10 h-14 rounded-lg overflow-hidden shrink-0 shadow-lg">
+                    <img src={anime.posterUrl} className="w-full h-full object-cover" alt="" />
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <h4 className="font-bold text-[13px] truncate group-hover:text-primary transition-colors">{anime.title}</h4>
+                    <p className="text-[9px] text-gray-500 uppercase font-black tracking-tighter mt-0.5">
+                      {anime.seasons.length} Seasons • {anime.seasons.reduce((acc, s) => acc + s.episodes.length, 0)} Eps
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Main Content - Form */}
+          <div className="lg:col-span-3 space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+                  {isEditing ? 'EDITING SERIES' : 'ADD NEW SERIES'}
+                </h1>
+                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">
+                  {isEditing ? `Editing: ${animeData.title}` : 'Initialize a new anime project'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {isEditing && (
+                  <button 
+                    onClick={handleReset}
+                    className="bg-white/5 hover:bg-white/10 px-4 py-3 rounded-xl text-[10px] font-bold transition-all border border-white/10 uppercase tracking-widest"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+                <button 
+                  onClick={handleSubmit}
+                  className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 uppercase text-xs"
+                >
+                  <Save className="w-4 h-4" />
+                  {isEditing ? 'Update Series' : 'Save Anime'}
+                </button>
+              </div>
+            </div>
 
           <form className="space-y-8">
             {/* Basic Info Section */}
@@ -517,6 +609,7 @@ const Admin = () => {
           </form>
         </div>
       </div>
+    </div>
     </div>
   );
 };
