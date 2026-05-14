@@ -13,13 +13,20 @@ if (typeof Player !== 'function' && Player && typeof Player.default === 'functio
   Player = Player.default;
 }
 
+import API_BASE_URL from '../api/config';
+
 /**
  * VideoPlayer Component
  * A wrapper around ReactPlayer to allow easy migration between streaming services.
- * Currently supports direct file URLs (UploadThing), YouTube, Twitch, etc.
+ * Currently supports direct file URLs (UploadThing, Telegram Proxy), YouTube, etc.
  */
 const VideoPlayer = ({ url, onEnded }) => {
-  if (!url) return (
+  // Fix for environment-specific URLs (e.g., /api/stream -> http://localhost:5000/api/stream)
+  const resolvedUrl = url && url.startsWith('/api') 
+    ? `${API_BASE_URL}${url.replace('/api', '')}` 
+    : url;
+
+  if (!resolvedUrl) return (
     <div className="aspect-video bg-black flex items-center justify-center rounded-2xl border border-white/5">
       <p className="text-gray-500 font-medium">Select an episode to start watching</p>
     </div>
@@ -28,7 +35,7 @@ const VideoPlayer = ({ url, onEnded }) => {
   return (
     <div className="relative group aspect-video bg-black rounded-2xl overflow-hidden shadow-xl border border-white/5">
       <Player
-        url={url}
+        url={resolvedUrl}
         width="100%"
         height="100%"
         controls={true}

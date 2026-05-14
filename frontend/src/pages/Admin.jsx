@@ -24,7 +24,14 @@ const Admin = () => {
       {
         seasonNumber: 1,
         title: 'Season 1',
-        episodes: [{ episodeNumber: 1, title: '', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
+        episodes: [{ 
+          episodeNumber: 1, 
+          title: '', 
+          videoUrl: '', 
+          thumbnailUrl: '', 
+          duration: '24m',
+          telegram: { fileId: '', accessHash: '', fileReference: '' }
+        }]
       }
     ]
   });
@@ -77,7 +84,14 @@ const Admin = () => {
         {
           seasonNumber: 1,
           title: 'Season 1',
-          episodes: [{ episodeNumber: 1, title: '', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
+          episodes: [{ 
+            episodeNumber: 1, 
+            title: '', 
+            videoUrl: '', 
+            thumbnailUrl: '', 
+            duration: '24m',
+            telegram: { fileId: '', accessHash: '', fileReference: '' }
+          }]
         }
       ]
     });
@@ -107,7 +121,8 @@ const Admin = () => {
       title: '',
       videoUrl: '',
       thumbnailUrl: '',
-      duration: '24m'
+      duration: '24m',
+      telegram: { fileId: '', accessHash: '', fileReference: '' }
     });
     setAnimeData({ ...animeData, seasons: newSeasons });
   };
@@ -219,6 +234,69 @@ const Admin = () => {
     } catch (error) {
       console.error(error);
       alert("Gofile Upload Error: " + error.message);
+      setUploadProgress(prev => {
+        const newEpisodes = { ...prev.episodes };
+        delete newEpisodes[`v-${sIdx}-${eIdx}`];
+        return { ...prev, episodes: newEpisodes };
+      });
+    }
+  };
+
+  const uploadToTelegram = (file, sIdx, eIdx) => {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE_URL}/upload-telegram`, true);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(prev => ({
+            ...prev,
+            episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: progress }
+          }));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          reject(new Error('Telegram upload failed'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
+    });
+  };
+
+  const handleTelegramUpload = async (e, sIdx, eIdx) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const res = await uploadToTelegram(file, sIdx, eIdx);
+      const newSeasons = [...animeData.seasons];
+      newSeasons[sIdx].episodes[eIdx].telegram = {
+        fileId: res.fileId,
+        accessHash: res.accessHash,
+        fileReference: res.fileReference,
+        messageId: res.messageId,
+        peerId: res.peerId
+      };
+      
+      // We save a RELATIVE path so it works on both localhost and Vercel
+      const streamUrl = `/api/stream/${res.fileId}/${res.accessHash}/${res.fileReference}?mid=${res.messageId}&pid=${res.peerId}`;
+      newSeasons[sIdx].episodes[eIdx].videoUrl = streamUrl;
+      
+      setAnimeData({ ...animeData, seasons: newSeasons });
+      alert("Uploaded to Telegram! 🚀");
+    } catch (error) {
+      alert("Error: " + error.message);
+    } finally {
       setUploadProgress(prev => {
         const newEpisodes = { ...prev.episodes };
         delete newEpisodes[`v-${sIdx}-${eIdx}`];
@@ -580,7 +658,24 @@ const Admin = () => {
                                   htmlFor={`file-${activeSeasonIndex}-${eIdx}`}
                                   className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl h-10 px-4 text-[10px] font-bold cursor-pointer transition-all w-full"
                                 >
-                                  {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 ? 'UPLOADING...' : 'GOFILE UPLOAD'}
+                                  {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 ? 'UPLOADING...' : 'GOFILE'}
+                                </label>
+                              </div>
+
+                              {/* Telegram Upload */}
+                              <div className="relative mt-2">
+                                <input 
+                                  type="file" 
+                                  id={`tg-${activeSeasonIndex}-${eIdx}`}
+                                  className="hidden"
+                                  onChange={(e) => handleTelegramUpload(e, activeSeasonIndex, eIdx)}
+                                  accept="video/*"
+                                />
+                                <label 
+                                  htmlFor={`tg-${activeSeasonIndex}-${eIdx}`}
+                                  className="flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl h-10 px-4 text-[10px] font-bold cursor-pointer transition-all w-full text-primary"
+                                >
+                                  {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 ? 'UPLOADING...' : 'TELEGRAM'}
                                 </label>
                               </div>
                               {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 && (

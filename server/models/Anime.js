@@ -20,7 +20,14 @@ const animeSchema = new mongoose.Schema({
     episodes: [{
       episodeNumber: { type: Number, required: true },
       title: { type: String, required: true },
-      videoUrl: { type: String, required: true }, // URL to the video file or stream
+      videoUrl: { type: String }, // For legacy or other hosts
+      telegram: {
+        fileId: { type: String },
+        accessHash: { type: String },
+        fileReference: { type: String },
+        messageId: { type: Number },
+        peerId: { type: String }
+      },
       duration: { type: String },
       thumbnailUrl: { type: String },
     }]

@@ -4,8 +4,11 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import { createRouteHandler } from "uploadthing/express";
 import { uploadRouter } from "./uploadthing.js";
+import { initTelegram } from './utils/telegram.js';
+import streamRoutes from './routes/stream.js';
 
 import animeRoutes from './routes/animeRoutes.js';
+import uploadTelegram from './routes/uploadTelegram.js';
 import Visitor from './models/Visitor.js';
 
 dotenv.config();
@@ -27,6 +30,10 @@ app.use(
 
 // Anime Routes
 app.use('/api/animes', animeRoutes);
+app.use('/api/upload-telegram', uploadTelegram);
+// Use the stream routes
+app.use('/api/stream', streamRoutes);
+
 
 // Visitor Tracking Logic
 app.post('/api/stats/track', async (req, res) => {
@@ -97,6 +104,8 @@ const healthCheck = (req, res) => {
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+initTelegram().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
 });
