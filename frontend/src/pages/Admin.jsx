@@ -667,11 +667,11 @@ const Admin = () => {
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                       <div className="space-y-1">
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">
-                          Episodes ({animeData.seasons[activeSeasonIndex].episodes.length})
+                          Episodes ({animeData.seasons?.[activeSeasonIndex]?.episodes?.length || 0})
                         </h3>
                         {/* Batch Pagination Buttons */}
                         <div className="flex flex-wrap gap-1">
-                          {Array.from({ length: Math.ceil(animeData.seasons[activeSeasonIndex].episodes.length / 50) }).map((_, i) => (
+                          {Array.from({ length: Math.ceil((animeData.seasons?.[activeSeasonIndex]?.episodes?.length || 0) / 50) }).map((_, i) => (
                             <button
                               key={i}
                               type="button"
@@ -680,7 +680,7 @@ const Admin = () => {
                                 currentBatch === i ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10'
                               }`}
                             >
-                              {i * 50 + 1}-{Math.min((i + 1) * 50, animeData.seasons[activeSeasonIndex].episodes.length)}
+                              {i * 50 + 1}-{Math.min((i + 1) * 50, animeData.seasons?.[activeSeasonIndex]?.episodes?.length || 0)}
                             </button>
                           ))}
                         </div>
@@ -698,7 +698,7 @@ const Admin = () => {
                     </div>
 
                     <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                      {animeData.seasons[activeSeasonIndex].episodes
+                      {animeData.seasons?.[activeSeasonIndex]?.episodes && animeData.seasons[activeSeasonIndex].episodes
                         .filter(ep => ep.episodeNumber.toString().includes(episodeSearch) || ep.title.toLowerCase().includes(episodeSearch.toLowerCase()))
                         .slice(episodeSearch ? 0 : currentBatch * 50, episodeSearch ? 999 : (currentBatch + 1) * 50)
                         .map((ep, eIdx) => (
@@ -855,7 +855,7 @@ const Admin = () => {
                       onClick={() => handleAddEpisode(activeSeasonIndex)}
                       className="w-full border-2 border-dashed border-white/5 hover:border-primary/30 hover:bg-primary/5 py-4 rounded-2xl text-xs font-bold text-gray-500 hover:text-primary transition-all uppercase tracking-widest flex items-center justify-center gap-2"
                     >
-                      <Plus className="w-4 h-4" /> Add Episode to Season {animeData.seasons[activeSeasonIndex].seasonNumber}
+                      <Plus className="w-4 h-4" /> Add Episode to Season {animeData.seasons?.[activeSeasonIndex]?.seasonNumber || activeSeasonIndex + 1}
                     </button>
                   </div>
                 </div>
