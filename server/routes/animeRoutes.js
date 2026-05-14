@@ -11,7 +11,8 @@ router.get('/', async (req, res) => {
     if (q) {
       query = { title: { $regex: q, $options: 'i' } };
     }
-    const animes = await Anime.find(query).sort({ createdAt: -1 });
+    const animes = await Anime.find(query).sort({ createdAt: -1 }).lean();
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     res.json(animes);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -23,14 +24,15 @@ router.get('/:id', async (req, res) => {
   try {
     let anime;
     if (req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
-      anime = await Anime.findById(req.params.id);
+      anime = await Anime.findById(req.params.id).lean();
     }
     
     if (!anime) {
-      anime = await Anime.findOne({ slug: req.params.id });
+      anime = await Anime.findOne({ slug: req.params.id }).lean();
     }
 
     if (!anime) return res.status(404).json({ message: 'Anime not found' });
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     res.json(anime);
   } catch (error) {
     res.status(500).json({ message: error.message });
