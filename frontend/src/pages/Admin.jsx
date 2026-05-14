@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { UploadButton } from "@uploadthing/react";
-import { Plus, Trash2, Save, Image as ImageIcon, List } from 'lucide-react';
+import { Plus, Trash2, Save,Settings , Image as ImageIcon, List } from 'lucide-react';
 import Navbar from '../components/Navbar';
 
 import API_BASE_URL from '../api/config';
 
 const Admin = () => {
+  const [isAdmin, setIsAdmin] = useState(sessionStorage.getItem('adminToken') ? true : false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [episodeSearch, setEpisodeSearch] = useState('');
+  const [currentBatch, setCurrentBatch] = useState(0); // 0 = 1-50, 1 = 51-100, etc.
   const [existingAnimes, setExistingAnimes] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -147,6 +151,7 @@ const Admin = () => {
         method,
         headers: {
           'Content-Type': 'application/json',
+          'admin-token': sessionStorage.getItem('adminToken')
         },
         body: JSON.stringify(processedData),
       });
@@ -249,6 +254,7 @@ const Admin = () => {
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${API_BASE_URL}/upload-telegram`, true);
+      xhr.setRequestHeader('admin-token', sessionStorage.getItem('adminToken'));
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
@@ -304,6 +310,50 @@ const Admin = () => {
       });
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="glass p-8 rounded-3xl w-full max-w-md space-y-6 text-center">
+          <div className="bg-primary/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto">
+            <Settings className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold">Admin Portal</h1>
+          <p className="text-gray-400 text-sm">Enter your secret password to continue</p>
+          <input 
+            type="password" 
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50 text-center"
+            placeholder="••••••••"
+          />
+          <button 
+            onClick={async () => {
+              try {
+                const res = await fetch(`${API_BASE_URL}/admin/login`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ password: passwordInput })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  sessionStorage.setItem('adminToken', data.token);
+                  setIsAdmin(true);
+                } else {
+                  alert("Invalid Password");
+                }
+              } catch (e) {
+                alert("Login failed");
+              }
+            }}
+            className="w-full bg-primary py-3 rounded-xl font-bold hover:bg-primary/90 transition-all"
+          >
+            Access Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -607,8 +657,44 @@ const Admin = () => {
                     )}
                   </div>
 
-                  <div className="space-y-4">
-                    {animeData.seasons[activeSeasonIndex].episodes.map((ep, eIdx) => (
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                          Episodes ({animeData.seasons[activeSeasonIndex].episodes.length})
+                        </h3>
+                        {/* Batch Pagination Buttons */}
+                        <div className="flex flex-wrap gap-1">
+                          {Array.from({ length: Math.ceil(animeData.seasons[activeSeasonIndex].episodes.length / 50) }).map((_, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setCurrentBatch(i)}
+                              className={`px-2 py-1 rounded-md text-[9px] font-black transition-all ${
+                                currentBatch === i ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:bg-white/10'
+                              }`}
+                            >
+                              {i * 50 + 1}-{Math.min((i + 1) * 50, animeData.seasons[activeSeasonIndex].episodes.length)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 max-w-xs relative">
+                        <input 
+                          type="text" 
+                          placeholder="Search Ep #..." 
+                          value={episodeSearch}
+                          onChange={(e) => setEpisodeSearch(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-primary/50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                      {animeData.seasons[activeSeasonIndex].episodes
+                        .filter(ep => ep.episodeNumber.toString().includes(episodeSearch) || ep.title.toLowerCase().includes(episodeSearch.toLowerCase()))
+                        .slice(episodeSearch ? 0 : currentBatch * 50, episodeSearch ? 999 : (currentBatch + 1) * 50)
+                        .map((ep, eIdx) => (
                       <div key={eIdx} className="grid md:grid-cols-4 gap-4 bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all group">
                         <div className="md:col-span-1 space-y-4">
                           <div className="flex items-center gap-3">

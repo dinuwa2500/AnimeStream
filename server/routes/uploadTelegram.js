@@ -12,13 +12,18 @@ router.post('/', upload.single('video'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded');
 
   try {
-    await initTelegram();
+    console.log(`📤 Sending "${req.file.originalname}" to Telegram...`);
     
     const result = await client.sendFile("me", {
       file: req.file.path,
       caption: `Upload: ${req.file.originalname}`,
-      workers: 2,
+      workers: 4, // Increased workers for speed
+      progressCallback: (progress) => {
+        const percent = Math.round(progress * 100);
+        process.stdout.write(`\r🚀 Telegram Upload Progress: ${percent}%`);
+      }
     });
+    console.log("\n✅ Done!");
 
     // Cleanup local file
     if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);

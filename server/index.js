@@ -6,6 +6,7 @@ import { createRouteHandler } from "uploadthing/express";
 import { uploadRouter } from "./uploadthing.js";
 import { initTelegram } from './utils/telegram.js';
 import streamRoutes from './routes/stream.js';
+import jwt from 'jsonwebtoken';
 
 import animeRoutes from './routes/animeRoutes.js';
 import uploadTelegram from './routes/uploadTelegram.js';
@@ -17,7 +18,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://anime-stream-inky.vercel.app', 
+    'https://animezstream.netlify.app',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://localhost:5174'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'admin-token', 'x-stats-password'],
+  credentials: true
+}));
 app.use(express.json());
 
 // UploadThing Route
@@ -28,10 +41,44 @@ app.use(
   })
 );
 
+
+
+// Admin Authentication Middleware
+const adminAuth = (req, res, next) => {
+  const token = req.headers['admin-token'];
+  if (!token) return res.status(401).json({ message: 'No token provided' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.ADMIN_PASSWORD);
+    req.admin = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid or expired token' });
+  }
+};
+
+// Login Route
+app.post('/api/admin/login', (req, res) => {
+  const { password } = req.body;
+  if (password === process.env.ADMIN_PASSWORD) {
+    // Generate a JWT token that lasts for 24 hours
+    const token = jwt.sign({ admin: true }, process.env.ADMIN_PASSWORD, { expiresIn: '24h' });
+    res.json({ success: true, token });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid password' });
+  }
+});
+
 // Anime Routes
-app.use('/api/animes', animeRoutes);
-app.use('/api/upload-telegram', uploadTelegram);
-// Use the stream routes
+app.use('/api/animes', (req, res, next) => {
+  // Allow GET requests for everyone, protect everything else
+  if (req.method === 'GET') return next();
+  adminAuth(req, res, next);
+}, animeRoutes);
+
+app.use('/api/upload-telegram', adminAuth, uploadTelegram);
+
+// Use the stream routes (Public)
 app.use('/api/stream', streamRoutes);
 
 
@@ -106,5 +153,11 @@ app.get('/api/health', healthCheck);
 
 // Background initialization
 initTelegram().catch(err => console.error("Telegram init failed:", err));
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Local Server running on http://localhost:${PORT}`);
+  });
+}
 
 export default app;
