@@ -5,11 +5,8 @@ import fs from 'fs';
 
 const router = express.Router();
 
-// Setup Multer for temporary storage
-if (!fs.existsSync('temp_uploads/')) {
-  fs.mkdirSync('temp_uploads/');
-}
-const upload = multer({ dest: 'temp_uploads/' });
+// Setup Multer for temporary storage (Vercel compatible)
+const upload = multer({ dest: '/tmp' });
 
 router.post('/', upload.single('video'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded');

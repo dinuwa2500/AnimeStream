@@ -104,8 +104,9 @@ const healthCheck = (req, res) => {
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
 
-initTelegram().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-  });
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  initTelegram().catch(err => console.error("Telegram init failed:", err));
 });
+
+export default app;
