@@ -2,68 +2,116 @@ import express from 'express';
 import { client } from '../utils/telegram.js';
 import { Api } from 'telegram';
 import bigInt from 'big-integer';
-import { Readable } from 'stream';
+import { initTelegram } from '../utils/telegram.js';
 
 const router = express.Router();
 
+// Memory cache to prevent hammering Telegram API on every scrub
+const metadataCache = new Map();
+
 router.get('/:fileId/:accessHash/:fileReference', async (req, res) => {
+  await initTelegram();
   let { fileId, accessHash, fileReference } = req.params;
   const { mid, pid } = req.query;
   const range = req.headers.range;
 
-  const getDocument = async (ref) => {
-    return new Api.InputDocumentFileLocation({
-      id: bigInt(fileId),
-      accessHash: bigInt(accessHash),
-      fileReference: Buffer.from(ref, 'hex'),
-      thumbSize: ""
-    });
-  };
-
   try {
-    const start = range ? parseInt(range.replace(/bytes=/, "").split("-")[0], 10) : 0;
-    const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+    // 1. Resolve the file and get its TOTAL SIZE first
+    let finalFileId = fileId;
+    let finalAccessHash = accessHash;
+    let finalFileRef = fileReference;
+    let totalSize = 0;
 
-    // Set headers immediately to tell the browser "We are ready!"
+    if (mid && pid) {
+      const cacheKey = `${pid}_${mid}`;
+      const cached = metadataCache.get(cacheKey);
+
+      if (cached && cached.expires > Date.now()) {
+        finalFileId = cached.id;
+        finalAccessHash = cached.accessHash;
+        finalFileRef = cached.fileReference;
+        totalSize = cached.size;
+      } else {
+        try {
+          let peer = pid;
+          if (!pid.startsWith('-')) peer = `-100${pid}`;
+          const [msg] = await client.getMessages(peer, { ids: [parseInt(mid)] });
+          if (msg?.media?.document) {
+            finalFileId = msg.media.document.id;
+            finalAccessHash = msg.media.document.accessHash;
+            finalFileRef = msg.media.document.fileReference;
+            totalSize = msg.media.document.size.toJSNumber ? msg.media.document.size.toJSNumber() : msg.media.document.size;
+            
+            // Cache for 1 hour
+            metadataCache.set(cacheKey, {
+              id: finalFileId,
+              accessHash: finalAccessHash,
+              fileReference: finalFileRef,
+              size: totalSize,
+              expires: Date.now() + 60 * 60 * 1000 
+            });
+          }
+        } catch (e) {
+          console.error("Peer fetch failed", e.message);
+        }
+      }
+    }
+
+    const requestedStart = range ? parseInt(range.replace(/bytes=/, "").split("-")[0], 10) : 0;
+    const CHUNK_SIZE = 1024 * 1024 * 2; // 2MB
+    const end = Math.min(requestedStart + CHUNK_SIZE - 1, totalSize > 0 ? totalSize - 1 : requestedStart + CHUNK_SIZE - 1);
+    const actualChunkSize = end - requestedStart + 1;
+
+    // Telegram alignment
+    const offset = Math.floor(requestedStart / 4096) * 4096;
+    const skip = requestedStart - offset;
+
     res.status(206).set({
       'Content-Type': 'video/mp4',
       'Accept-Ranges': 'bytes',
-      'Content-Range': `bytes ${start}-${start + CHUNK_SIZE - 1}/*`, // Estimated range
+      'Content-Range': `bytes ${requestedStart}-${end}/${totalSize || '*'}`,
+      'Content-Length': actualChunkSize,
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      'Access-Control-Allow-Origin': '*',
     });
 
-    const streamFromTelegram = async (ref) => {
+    const streamFromTelegram = async () => {
       const iter = client.iterDownload({
-        file: await getDocument(ref),
-        offset: bigInt(start),
-        limit: bigInt(CHUNK_SIZE),
-        requestSize: 64 * 1024 // Small 64KB internal chunks for instant data flow
+        file: new Api.InputDocumentFileLocation({
+          id: bigInt(finalFileId),
+          accessHash: bigInt(finalAccessHash),
+          fileReference: Buffer.isBuffer(finalFileRef) ? finalFileRef : Buffer.from(finalFileRef, 'hex'),
+          thumbSize: ""
+        }),
+        offset: bigInt(offset),
+        limit: bigInt(actualChunkSize + skip),
+        requestSize: 512 * 1024 // Increased to 512KB for massive speed boost
       });
 
+      let bytesSent = 0;
+      let firstChunk = true;
+
       for await (const chunk of iter) {
-        if (!res.writableEnded) {
-          res.write(chunk);
+        if (res.writableEnded || bytesSent >= actualChunkSize) break;
+
+        let data = chunk;
+        if (firstChunk) {
+          data = chunk.slice(skip);
+          firstChunk = false;
         }
+
+        const remaining = actualChunkSize - bytesSent;
+        if (data.length > remaining) {
+          data = data.slice(0, remaining);
+        }
+
+        res.write(data);
+        bytesSent += data.length;
       }
       res.end();
     };
 
-    try {
-      await streamFromTelegram(fileReference);
-    } catch (error) {
-      // SELF-HEALING: If link expired, try refreshing
-      if ((error.errorMessage === 'FILE_REFERENCE_EXPIRED' || error.errorMessage === 'FILE_REFERENCE_INVALID') && mid && pid) {
-       
-        const [msg] = await client.getMessages(pid, { ids: [parseInt(mid)] });
-        if (msg?.media?.document) {
-          const freshRef = msg.media.document.fileReference.toString('hex');
-          await streamFromTelegram(freshRef);
-        }
-      } else {
-        throw error;
-      }
-    }
+    await streamFromTelegram();
 
   } catch (error) {
     console.error('Stream Error:', error.message);
