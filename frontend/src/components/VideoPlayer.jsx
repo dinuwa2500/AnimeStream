@@ -26,6 +26,8 @@ const VideoPlayer = ({ url, onEnded }) => {
     ? `${API_BASE_URL}${url.replace('/api', '')}` 
     : url;
 
+  
+
   if (!resolvedUrl) return (
     <div className="aspect-video bg-black flex items-center justify-center rounded-2xl border border-white/5">
       <p className="text-gray-500 font-medium">Select an episode to start watching</p>
