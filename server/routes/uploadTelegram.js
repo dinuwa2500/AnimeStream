@@ -14,7 +14,7 @@ router.post('/', upload.single('video'), async (req, res) => {
   try {
     console.log(`📤 Sending "${req.file.originalname}" to Telegram...`);
     
-    const result = await client.sendFile(process.env.TELEGRAM_CHANNEL_ID || "me", {
+    const result = await client.sendFile("me", {
       file: req.file.path,
       caption: `Upload: ${req.file.originalname}`,
       workers: 4, // Increased workers for speed

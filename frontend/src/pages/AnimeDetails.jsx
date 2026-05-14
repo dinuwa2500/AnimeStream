@@ -104,7 +104,7 @@ const AnimeDetails = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Episodes</h2>
             <div className="flex gap-2">
-              {anime.seasons.map((s) => (
+              {anime.seasons?.map((s) => (
                 <button
                   key={s.seasonNumber}
                   onClick={() => setActiveSeason(s.seasonNumber)}
@@ -129,7 +129,7 @@ const AnimeDetails = () => {
                 exit={{ opacity: 0, x: -20 }}
                 className="grid gap-3"
               >
-                {anime.seasons.find(s => s.seasonNumber === activeSeason)?.episodes.map((ep) => (
+                {anime.seasons?.find(s => s.seasonNumber === activeSeason)?.episodes.map((ep) => (
                   <div 
                     key={ep.episodeNumber}
                     onClick={() => ep.videoUrl && setCurrentVideoUrl(ep.videoUrl)}

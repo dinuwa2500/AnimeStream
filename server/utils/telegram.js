@@ -13,11 +13,17 @@ const client = new TelegramClient(stringSession, apiId, apiHash, {
 });
 
 export const initTelegram = async () => {
-  await client.connect();
-  if (client.session.save()) {
+  if (client.connected) return;
+  
+  try {
+    await client.connect();
     console.log("✅ Telegram Client Connected");
-    // If you don't have a session string yet, this script will help you login.
-    // I'll add a helper for that in the next step.
+  } catch (err) {
+    if (err.message.includes('AUTH_KEY_DUPLICATED')) {
+      console.warn("⚠️ Telegram: Auth Key Duplicated. This usually means your local server and Vercel are running at the same time.");
+    } else {
+      console.error("❌ Telegram Connection Error:", err.message);
+    }
   }
 };
 

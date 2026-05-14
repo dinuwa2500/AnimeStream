@@ -62,15 +62,24 @@ const Admin = () => {
     fetchExistingAnimes();
   }, []);
 
-  const handleEdit = (anime) => {
-    setAnimeData({
-      ...anime,
-      genres: Array.isArray(anime.genres) ? anime.genres.join(', ') : anime.genres
-    });
-    setEditingId(anime._id);
-    setIsEditing(true);
-    setActiveSeasonIndex(0);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleEdit = async (anime) => {
+    try {
+      // Fetch the FULL anime details (including seasons/episodes)
+      const res = await fetch(`${API_BASE_URL}/animes/${anime._id}`);
+      const fullAnime = await res.json();
+      
+      setAnimeData({
+        ...fullAnime,
+        genres: Array.isArray(fullAnime.genres) ? fullAnime.genres.join(', ') : fullAnime.genres,
+        releaseDate: fullAnime.releaseDate ? fullAnime.releaseDate.split('T')[0] : new Date().toISOString().split('T')[0]
+      });
+      setEditingId(fullAnime._id);
+      setIsEditing(true);
+      setActiveSeasonIndex(0);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      alert("Failed to load anime details");
+    }
   };
 
   const handleReset = () => {
@@ -606,18 +615,16 @@ const Admin = () => {
 
               {/* Season Tabs */}
               <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto custom-scrollbar">
-                {animeData.seasons.map((season, idx) => (
+                {animeData.seasons?.map((season, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setActiveSeasonIndex(idx)}
-                    className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
-                      activeSeasonIndex === idx 
-                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
-                        : 'bg-white/5 text-gray-500 border-white/5 hover:border-white/10'
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                      activeSeasonIndex === idx ? 'bg-primary text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'
                     }`}
                   >
-                    Season {season.seasonNumber}
+                    S{season.seasonNumber}
                   </button>
                 ))}
               </div>
