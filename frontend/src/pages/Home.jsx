@@ -67,6 +67,7 @@ const Home = () => {
                 rating={anime.rating}
                 episodes={anime.episodes}
                 type={anime.type}
+                seasons={anime.seasons}
               />
             ))}
           </div>
@@ -96,6 +97,7 @@ const Home = () => {
                 rating={anime.rating}
                 episodes={anime.episodes}
                 type={anime.type}
+                seasons={anime.seasons}
               />
             ))}
           </div>

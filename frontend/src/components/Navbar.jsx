@@ -1,24 +1,25 @@
 import React from 'react';
 import { Search, Menu, Play, Bell, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 w-full z-50 glass border-b border-white/5 px-6 py-4 flex items-center justify-between">
       <div className="flex items-center gap-8">
-        <div className="flex items-center gap-2 cursor-pointer group">
+        <Link to="/" className="flex items-center gap-2 cursor-pointer group">
           <div className="bg-primary p-1.5 rounded-lg group-hover:rotate-12 transition-transform">
             <Play className="w-5 h-5 fill-white" />
           </div>
           <span className="text-xl font-bold tracking-tighter bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
             ANIME<span className="text-primary">STREAM</span>
           </span>
-        </div>
+        </Link>
 
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-400">
-          <a href="#" className="hover:text-white transition-colors">Home</a>
-          <a href="#" className="hover:text-white transition-colors">Trending</a>
-          <a href="#" className="hover:text-white transition-colors">Genres</a>
-          <a href="#" className="hover:text-white transition-colors">Movies</a>
+          <Link to="/" className="hover:text-white transition-colors">Home</Link>
+          <Link to="/" className="hover:text-white transition-colors">Trending</Link>
+          <Link to="/" className="hover:text-white transition-colors">Genres</Link>
+          <Link to="/" className="hover:text-white transition-colors">Movies</Link>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UploadButton } from "@uploadthing/react";
 import { Plus, Trash2, Save, Image as ImageIcon, List } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -9,6 +9,7 @@ const Admin = () => {
   const [existingAnimes, setExistingAnimes] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [activeSeasonIndex, setActiveSeasonIndex] = useState(0);
   const [animeData, setAnimeData] = useState({
     title: '',
     description: '',
@@ -39,9 +40,10 @@ const Admin = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/animes`);
       const data = await response.json();
-      setExistingAnimes(data);
+      setExistingAnimes(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching animes:', error);
+      setExistingAnimes([]);
     }
   };
 
@@ -56,6 +58,7 @@ const Admin = () => {
     });
     setEditingId(anime._id);
     setIsEditing(true);
+    setActiveSeasonIndex(0);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -80,6 +83,7 @@ const Admin = () => {
     });
     setIsEditing(false);
     setEditingId(null);
+    setActiveSeasonIndex(0);
   };
 
   const handleAddSeason = () => {
@@ -116,7 +120,8 @@ const Admin = () => {
       ...animeData,
       genres: typeof animeData.genres === 'string' 
         ? animeData.genres.split(',').map(g => g.trim()) 
-        : animeData.genres
+        : animeData.genres,
+      episodes: animeData.seasons.reduce((acc, s) => acc + (s.episodes?.length || 0), 0)
     };
 
     try {
@@ -243,25 +248,29 @@ const Admin = () => {
               </button>
             </div>
             <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
-              {existingAnimes.map((anime) => (
-                <div 
-                  key={anime._id}
-                  onClick={() => handleEdit(anime)}
-                  className={`glass p-3 rounded-2xl flex gap-3 cursor-pointer transition-all border group ${
-                    editingId === anime._id ? 'border-primary/50 bg-primary/5' : 'border-white/5 hover:border-white/10'
-                  }`}
-                >
-                  <div className="w-10 h-14 rounded-lg overflow-hidden shrink-0 shadow-lg">
-                    <img src={anime.posterUrl} className="w-full h-full object-cover" alt="" />
+              {Array.isArray(existingAnimes) && existingAnimes.length > 0 ? (
+                existingAnimes.map((anime) => (
+                  <div 
+                    key={anime._id}
+                    onClick={() => handleEdit(anime)}
+                    className={`glass p-3 rounded-2xl flex gap-3 cursor-pointer transition-all border group ${
+                      editingId === anime._id ? 'border-primary/50 bg-primary/5' : 'border-white/5 hover:border-white/10'
+                    }`}
+                  >
+                    <div className="w-10 h-14 rounded-lg overflow-hidden shrink-0 shadow-lg">
+                      <img src={anime.posterUrl} className="w-full h-full object-cover" alt="" />
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <h4 className="font-bold text-[13px] truncate group-hover:text-primary transition-colors">{anime.title}</h4>
+                      <p className="text-[9px] text-gray-500 uppercase font-black tracking-tighter mt-0.5">
+                        {anime.seasons?.length || 0} Seasons • {anime.episodes || anime.seasons?.reduce((acc, s) => acc + (s.episodes?.length || 0), 0) || 0} Eps
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h4 className="font-bold text-[13px] truncate group-hover:text-primary transition-colors">{anime.title}</h4>
-                    <p className="text-[9px] text-gray-500 uppercase font-black tracking-tighter mt-0.5">
-                      {anime.seasons.length} Seasons • {anime.seasons.reduce((acc, s) => acc + s.episodes.length, 0)} Eps
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-500 text-[10px] text-center py-4">No series found or server error.</p>
+              )}
             </div>
           </div>
 
@@ -453,158 +462,216 @@ const Admin = () => {
               </div>
             </div>
 
-            {/* Seasons & Episodes Section */}
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Seasons & Episodes</h2>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <List className="w-6 h-6 text-primary" /> Seasons & Episodes
+                </h2>
                 <button 
                   type="button"
                   onClick={handleAddSeason}
-                  className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                  className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-2 rounded-xl text-xs font-bold transition-all"
                 >
-                  <Plus className="w-4 h-4" /> ADD SEASON
+                  <Plus className="w-4 h-4" /> ADD NEW SEASON
                 </button>
               </div>
 
-              {animeData.seasons.map((season, sIdx) => (
-                <div key={sIdx} className="glass rounded-3xl p-8 space-y-6 border-l-4 border-primary">
+              {/* Season Tabs */}
+              <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto custom-scrollbar">
+                {animeData.seasons.map((season, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveSeasonIndex(idx)}
+                    className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all border ${
+                      activeSeasonIndex === idx 
+                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
+                        : 'bg-white/5 text-gray-500 border-white/5 hover:border-white/10'
+                    }`}
+                  >
+                    Season {season.seasonNumber}
+                  </button>
+                ))}
+              </div>
+
+              {/* Active Season Episodes */}
+              {animeData.seasons[activeSeasonIndex] && (
+                <div className="glass rounded-3xl p-8 space-y-6 border-l-4 border-primary animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="flex items-center justify-between">
-                    <input 
-                      type="text"
-                      className="bg-transparent text-xl font-bold focus:outline-none border-b border-transparent focus:border-primary/50"
-                      value={season.title}
-                      onChange={(e) => {
-                        const newSeasons = [...animeData.seasons];
-                        newSeasons[sIdx].title = e.target.value;
-                        setAnimeData({...animeData, seasons: newSeasons});
-                      }}
-                    />
-                    <button className="text-red-500 hover:text-red-400 p-2"><Trash2 className="w-5 h-5" /></button>
+                    <div className="flex items-center gap-4">
+                      <div className="bg-primary/20 w-12 h-12 rounded-2xl flex items-center justify-center">
+                        <span className="text-primary font-black text-xl">{animeData.seasons[activeSeasonIndex].seasonNumber}</span>
+                      </div>
+                      <input 
+                        type="text"
+                        className="bg-transparent text-xl font-bold focus:outline-none border-b border-transparent focus:border-primary/50"
+                        value={animeData.seasons[activeSeasonIndex].title}
+                        onChange={(e) => {
+                          const newSeasons = [...animeData.seasons];
+                          newSeasons[activeSeasonIndex].title = e.target.value;
+                          setAnimeData({...animeData, seasons: newSeasons});
+                        }}
+                        placeholder="Season Title"
+                      />
+                    </div>
+                    {animeData.seasons.length > 1 && (
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const newSeasons = animeData.seasons.filter((_, i) => i !== activeSeasonIndex);
+                          setAnimeData({...animeData, seasons: newSeasons});
+                          setActiveSeasonIndex(0);
+                        }}
+                        className="text-red-500/50 hover:text-red-500 p-2 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-4">
-                    {season.episodes.map((ep, eIdx) => (
-                      <div key={eIdx} className="grid md:grid-cols-3 gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-3">
-                          <span className="text-gray-500 font-bold">EP {ep.episodeNumber}</span>
-                          <input 
-                            type="text"
-                            placeholder="Episode Title"
-                            className="bg-transparent text-sm focus:outline-none w-full"
-                            value={ep.title}
-                            onChange={(e) => {
-                              const newSeasons = [...animeData.seasons];
-                              newSeasons[sIdx].episodes[eIdx].title = e.target.value;
-                              setAnimeData({...animeData, seasons: newSeasons});
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                        <div className="flex flex-col gap-4 w-full">
-                          {/* Video Upload */}
-                          <div className="space-y-2">
-                            <label className="text-[10px] text-gray-500 uppercase font-bold">Video File (Gofile.io)</label>
-                            <div className="relative">
-                              <input 
-                                type="file" 
-                                id={`file-${sIdx}-${eIdx}`}
-                                className="hidden"
-                                onChange={(e) => handleFileChange(e, sIdx, eIdx)}
-                                accept="video/*"
-                              />
-                              <label 
-                                htmlFor={`file-${sIdx}-${eIdx}`}
-                                className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg h-8 px-3 text-[10px] font-bold cursor-pointer transition-all w-full"
-                              >
-                                {uploadProgress.episodes[`v-${sIdx}-${eIdx}`] > 0 ? 'UPLOADING...' : 'SELECT VIDEO'}
-                              </label>
-                            </div>
-                            {uploadProgress.episodes[`v-${sIdx}-${eIdx}`] > 0 && (
-                              <div className="w-full space-y-1">
-                                <div className="flex justify-between text-[8px] font-black text-primary uppercase tracking-tighter">
-                                  <span>GOFILE</span>
-                                  <span>{uploadProgress.episodes[`v-${sIdx}-${eIdx}`]}%</span>
-                                </div>
-                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden shadow-inner">
-                                  <div className="bg-primary h-full transition-all" style={{ width: `${uploadProgress.episodes[`v-${sIdx}-${eIdx}`]}%` }} />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Thumbnail Upload */}
-                          <div className="space-y-2">
-                            <label className="text-[10px] text-gray-500 uppercase font-bold">Thumbnail</label>
-                            <UploadButton
-                              endpoint="imageUploader"
-                              url={`${API_BASE_URL}/uploadthing`}
-                              onUploadProgress={(progress) => {
-                                setUploadProgress(prev => ({
-                                  ...prev,
-                                  thumbnails: { ...prev.thumbnails, [`t-${sIdx}-${eIdx}`]: progress }
-                                }));
-                              }}
-                              onClientUploadComplete={(res) => {
+                    {animeData.seasons[activeSeasonIndex].episodes.map((ep, eIdx) => (
+                      <div key={eIdx} className="grid md:grid-cols-4 gap-4 bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all group">
+                        <div className="md:col-span-1 space-y-4">
+                          <div className="flex items-center gap-3">
+                            <span className="text-primary font-black text-xs uppercase">EP {ep.episodeNumber}</span>
+                            <input 
+                              type="text"
+                              placeholder="Episode Title"
+                              className="bg-transparent text-sm font-bold focus:outline-none w-full border-b border-white/10 focus:border-primary/50 transition-colors"
+                              value={ep.title}
+                              onChange={(e) => {
                                 const newSeasons = [...animeData.seasons];
-                                newSeasons[sIdx].episodes[eIdx].thumbnailUrl = res[0].url;
+                                newSeasons[activeSeasonIndex].episodes[eIdx].title = e.target.value;
                                 setAnimeData({...animeData, seasons: newSeasons});
-                                setUploadProgress(prev => {
-                                  const newThumbs = { ...prev.thumbnails };
-                                  delete newThumbs[`t-${sIdx}-${eIdx}`];
-                                  return { ...prev, thumbnails: newThumbs };
-                                });
-                              }}
-                              appearance={{
-                                button: "ut-ready:bg-secondary/50 ut-uploading:cursor-not-allowed bg-white/5 text-[10px] h-8 px-3 rounded-lg border border-white/10 w-full",
-                              }}
-                              content={{
-                                button({ isUploading }) {
-                                  if (isUploading) return "UPDATING...";
-                                  return "UPLOAD THUMB";
-                                },
                               }}
                             />
-                            {uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`] > 0 && (
-                              <div className="w-full space-y-1">
-                                <div className="flex justify-between text-[8px] font-black text-secondary uppercase tracking-tighter">
-                                  <span>THUMB</span>
-                                  <span>{uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`]}%</span>
-                                </div>
-                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden shadow-inner">
-                                  <div className="bg-secondary h-full transition-all" style={{ width: `${uploadProgress.thumbnails[`t-${sIdx}-${eIdx}`]}%` }} />
-                                </div>
-                              </div>
-                            )}
                           </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-gray-500 uppercase font-bold">Duration</label>
+                            <input 
+                              type="text"
+                              placeholder="e.g. 24m"
+                              className="bg-white/5 text-xs px-3 py-2 rounded-lg focus:outline-none w-full border border-white/5"
+                              value={ep.duration}
+                              onChange={(e) => {
+                                const newSeasons = [...animeData.seasons];
+                                newSeasons[activeSeasonIndex].episodes[eIdx].duration = e.target.value;
+                                setAnimeData({...animeData, seasons: newSeasons});
+                              }}
+                            />
+                          </div>
+                        </div>
 
+                        <div className="md:col-span-2 space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Video Upload */}
+                            <div className="space-y-2">
+                              <label className="text-[10px] text-gray-500 uppercase font-bold">Video File</label>
+                              <div className="relative">
+                                <input 
+                                  type="file" 
+                                  id={`file-${activeSeasonIndex}-${eIdx}`}
+                                  className="hidden"
+                                  onChange={(e) => handleFileChange(e, activeSeasonIndex, eIdx)}
+                                  accept="video/*"
+                                />
+                                <label 
+                                  htmlFor={`file-${activeSeasonIndex}-${eIdx}`}
+                                  className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl h-10 px-4 text-[10px] font-bold cursor-pointer transition-all w-full"
+                                >
+                                  {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 ? 'UPLOADING...' : 'GOFILE UPLOAD'}
+                                </label>
+                              </div>
+                              {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 && (
+                                <div className="w-full space-y-1">
+                                  <div className="flex justify-between text-[8px] font-black text-primary uppercase tracking-tighter">
+                                    <span>{uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`]}%</span>
+                                  </div>
+                                  <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                    <div className="bg-primary h-full transition-all" style={{ width: `${uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`]}%` }} />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Thumbnail Upload */}
+                            <div className="space-y-2">
+                              <label className="text-[10px] text-gray-500 uppercase font-bold">Thumbnail</label>
+                              <UploadButton
+                                endpoint="imageUploader"
+                                url={`${API_BASE_URL}/uploadthing`}
+                                onUploadProgress={(progress) => {
+                                  setUploadProgress(prev => ({
+                                    ...prev,
+                                    thumbnails: { ...prev.thumbnails, [`t-${activeSeasonIndex}-${eIdx}`]: progress }
+                                  }));
+                                }}
+                                onClientUploadComplete={(res) => {
+                                  const newSeasons = [...animeData.seasons];
+                                  newSeasons[activeSeasonIndex].episodes[eIdx].thumbnailUrl = res[0].url;
+                                  setAnimeData({...animeData, seasons: newSeasons});
+                                  setUploadProgress(prev => {
+                                    const newThumbs = { ...prev.thumbnails };
+                                    delete newThumbs[`t-${activeSeasonIndex}-${eIdx}`];
+                                    return { ...prev, thumbnails: newThumbs };
+                                  });
+                                }}
+                                appearance={{
+                                  button: "ut-ready:bg-secondary/20 bg-white/5 text-[10px] h-10 px-4 rounded-xl border border-white/10 w-full font-bold",
+                                }}
+                                content={{
+                                  button({ isUploading }) {
+                                    if (isUploading) return "UPDATING...";
+                                    return "THUMBNAIL";
+                                  },
+                                }}
+                              />
+                            </div>
+                          </div>
+                          
                           <input 
                             type="text"
-                            placeholder="Video URL"
-                            className="bg-transparent text-xs focus:outline-none w-full border-b border-white/5 pb-1"
+                            placeholder="Video URL (Direct link or Gofile page)"
+                            className="bg-white/5 text-xs px-4 py-3 rounded-xl focus:outline-none w-full border border-white/5 focus:border-primary/30 transition-all"
                             value={ep.videoUrl}
                             onChange={(e) => {
                               const newSeasons = [...animeData.seasons];
-                              newSeasons[sIdx].episodes[eIdx].videoUrl = e.target.value;
+                              newSeasons[activeSeasonIndex].episodes[eIdx].videoUrl = e.target.value;
                               setAnimeData({...animeData, seasons: newSeasons});
                             }}
                           />
                         </div>
-                        </div>
-                        <div className="flex justify-end">
-                          <button className="text-gray-600 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+
+                        <div className="md:col-span-1 flex flex-col justify-between items-end pb-1">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const newSeasons = [...animeData.seasons];
+                              newSeasons[activeSeasonIndex].episodes = newSeasons[activeSeasonIndex].episodes.filter((_, i) => i !== eIdx);
+                              setAnimeData({...animeData, seasons: newSeasons});
+                            }}
+                            className="bg-red-500/10 text-red-500 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          {ep.thumbnailUrl && (
+                            <img src={ep.thumbnailUrl} className="w-16 h-10 object-cover rounded-lg shadow-lg border border-white/10" alt="" />
+                          )}
                         </div>
                       </div>
                     ))}
+                    
                     <button 
                       type="button"
-                      onClick={() => handleAddEpisode(sIdx)}
-                      className="w-full border-2 border-dashed border-white/5 hover:border-white/10 py-3 rounded-2xl text-xs font-bold text-gray-500 transition-all uppercase tracking-widest"
+                      onClick={() => handleAddEpisode(activeSeasonIndex)}
+                      className="w-full border-2 border-dashed border-white/5 hover:border-primary/30 hover:bg-primary/5 py-4 rounded-2xl text-xs font-bold text-gray-500 hover:text-primary transition-all uppercase tracking-widest flex items-center justify-center gap-2"
                     >
-                      + Add Episode to Season {season.seasonNumber}
+                      <Plus className="w-4 h-4" /> Add Episode to Season {animeData.seasons[activeSeasonIndex].seasonNumber}
                     </button>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </form>
         </div>

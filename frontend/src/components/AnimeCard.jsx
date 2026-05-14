@@ -2,8 +2,9 @@ import { Play, Star, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
-const AnimeCard = ({ title, image, rating, episodes, type, id }) => {
+const AnimeCard = ({ title, image, rating, episodes, type, id, seasons }) => {
   const navigate = useNavigate();
+  const totalEpisodes = episodes || seasons?.reduce((acc, s) => acc + (s.episodes?.length || 0), 0) || 0;
 
   return (
     <motion.div 
@@ -45,7 +46,7 @@ const AnimeCard = ({ title, image, rating, episodes, type, id }) => {
           {title}
         </h3>
         <div className="flex items-center justify-between text-[11px] text-gray-500 font-medium">
-          <span>{episodes} Episodes</span>
+          <span>{totalEpisodes} Episodes</span>
           <button className="p-1 hover:bg-white/5 rounded-md transition-colors">
             <Plus className="w-4 h-4" />
           </button>

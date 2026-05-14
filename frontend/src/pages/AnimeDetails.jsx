@@ -30,8 +30,11 @@ const AnimeDetails = () => {
         setAnime(detailsData);
         setRecommendations(allData.filter(a => a._id !== detailsData._id).slice(0, 5));
         
-        if (detailsData.seasons && detailsData.seasons.length > 0 && detailsData.seasons[0].episodes.length > 0) {
-          setCurrentVideoUrl(detailsData.seasons[0].episodes[0].videoUrl);
+        if (detailsData.seasons && detailsData.seasons.length > 0) {
+          setActiveSeason(detailsData.seasons[0].seasonNumber);
+          if (detailsData.seasons[0].episodes.length > 0) {
+            setCurrentVideoUrl(detailsData.seasons[0].episodes[0].videoUrl);
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -79,7 +82,10 @@ const AnimeDetails = () => {
             <div className="flex flex-wrap gap-6 pt-4 text-sm font-medium text-gray-300">
               <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-primary" /> {new Date(anime.releaseDate).getFullYear() || 'N/A'}</div>
               <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> {anime.status}</div>
-              <div className="flex items-center gap-2"><List className="w-4 h-4 text-primary" /> {anime.episodes} Episodes</div>
+              <div className="flex items-center gap-2">
+                <List className="w-4 h-4 text-primary" /> 
+                {anime.episodes || anime.seasons?.reduce((acc, s) => acc + (s.episodes?.length || 0), 0) || 0} Episodes
+              </div>
             </div>
           </div>
         </div>

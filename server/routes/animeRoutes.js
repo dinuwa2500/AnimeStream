@@ -6,7 +6,12 @@ const router = express.Router();
 // Get all anime
 router.get('/', async (req, res) => {
   try {
-    const animes = await Anime.find().sort({ createdAt: -1 });
+    const { q } = req.query;
+    let query = {};
+    if (q) {
+      query = { title: { $regex: q, $options: 'i' } };
+    }
+    const animes = await Anime.find(query).sort({ createdAt: -1 });
     res.json(animes);
   } catch (error) {
     res.status(500).json({ message: error.message });
