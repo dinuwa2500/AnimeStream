@@ -37,7 +37,7 @@ async function initTelegram() {
 
   try {
     isInitializing = true;
-    console.log("📡 Connecting to Telegram...");
+  
     
     // Use start() with no arguments because the session string handles the login
     await client.start({
@@ -47,7 +47,7 @@ async function initTelegram() {
       onError: (err) => console.error("GramJS Error:", err.message),
     });
     
-    console.log("✅ Telegram Client Connected");
+   
     return client;
   } catch (error) {
     console.error("❌ Telegram Connection Failed:", error.message);

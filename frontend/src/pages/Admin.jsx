@@ -180,74 +180,109 @@ const Admin = () => {
   };
 
   const uploadToGofile = (file, sIdx, eIdx) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // 1. Get Server
-        const serverRes = await fetch('https://api.gofile.io/getServer');
-        const serverData = await serverRes.json();
-        if (serverData.status !== 'ok') throw new Error('Could not get Gofile server');
-        const server = serverData.data.server;
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('video', file);
 
-        // 2. Upload with Progress
-        const formData = new FormData();
-        formData.append('file', file);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE_URL}/upload-gofile`, true);
+      xhr.setRequestHeader('admin-token', sessionStorage.getItem('adminToken'));
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `https://${server}.gofile.io/uploadFile`, true);
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(prev => ({
+            ...prev,
+            episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: progress }
+          }));
+        }
+      };
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(prev => ({
-              ...prev,
-              episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: progress }
-            }));
-          }
-        };
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          reject(new Error('Gofile upload failed'));
+        }
+      };
 
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            const response = JSON.parse(xhr.responseText);
-            if (response.status === 'ok') {
-              // Gofile returns a downloadPage, we want to store that
-              resolve(response.data.downloadPage);
-            } else {
-              reject(new Error(response.message || 'Gofile upload failed'));
-            }
-          } else {
-            reject(new Error('Gofile upload failed'));
-          }
-        };
-
-        xhr.onerror = () => reject(new Error('Network error during Gofile upload'));
-        xhr.send(formData);
-
-      } catch (error) {
-        reject(error);
-      }
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
     });
   };
 
-  const handleFileChange = async (e, sIdx, eIdx) => {
+  const handleGofileUpload = async (e, sIdx, eIdx) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      const downloadUrl = await uploadToGofile(file, sIdx, eIdx);
+      const res = await uploadToGofile(file, sIdx, eIdx);
       const newSeasons = [...animeData.seasons];
-      newSeasons[sIdx].episodes[eIdx].videoUrl = downloadUrl;
-      setAnimeData({ ...animeData, seasons: newSeasons });
       
+      // Store the Gofile download page as the video URL
+      newSeasons[sIdx].episodes[eIdx].videoUrl = res.downloadPage;
+      
+      setAnimeData({ ...animeData, seasons: newSeasons });
+      alert("Uploaded to Gofile! 🚀");
+    } catch (error) {
+      alert("Error: " + error.message);
+    } finally {
       setUploadProgress(prev => {
         const newEpisodes = { ...prev.episodes };
         delete newEpisodes[`v-${sIdx}-${eIdx}`];
         return { ...prev, episodes: newEpisodes };
       });
+    }
+  };
+
+  const uploadToDoodstream = (file, sIdx, eIdx) => {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE_URL}/upload-doodstream`, true);
+      xhr.setRequestHeader('admin-token', sessionStorage.getItem('adminToken'));
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(prev => ({
+            ...prev,
+            episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: progress }
+          }));
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          reject(new Error('DoodStream upload failed'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.send(formData);
+    });
+  };
+
+  const handleDoodstreamUpload = async (e, sIdx, eIdx) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const res = await uploadToDoodstream(file, sIdx, eIdx);
+      const newSeasons = [...animeData.seasons];
       
-      alert("Video Uploaded to Gofile! 🚀");
+      // Store the DoodStream embed URL as the video URL
+      newSeasons[sIdx].episodes[eIdx].videoUrl = res.embedUrl;
+      
+      setAnimeData({ ...animeData, seasons: newSeasons });
+      alert("Uploaded to DoodStream! 🚀");
     } catch (error) {
-      console.error(error);
-      alert("Gofile Upload Error: " + error.message);
+      alert("Error: " + error.message);
+    } finally {
       setUploadProgress(prev => {
         const newEpisodes = { ...prev.episodes };
         delete newEpisodes[`v-${sIdx}-${eIdx}`];
@@ -744,8 +779,8 @@ const Admin = () => {
                                   type="file" 
                                   id={`file-${activeSeasonIndex}-${eIdx}`}
                                   className="hidden"
-                                  onChange={(e) => handleFileChange(e, activeSeasonIndex, eIdx)}
                                   accept="video/*"
+                                  onChange={(e) => handleGofileUpload(e, activeSeasonIndex, eIdx)}
                                 />
                                 <label 
                                   htmlFor={`file-${activeSeasonIndex}-${eIdx}`}
@@ -769,6 +804,23 @@ const Admin = () => {
                                   className="flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl h-10 px-4 text-[10px] font-bold cursor-pointer transition-all w-full text-primary"
                                 >
                                   {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 ? 'UPLOADING...' : 'TELEGRAM'}
+                                </label>
+                              </div>
+
+                              {/* DoodStream Upload */}
+                              <div className="relative mt-2">
+                                <input 
+                                  type="file" 
+                                  id={`ds-${activeSeasonIndex}-${eIdx}`}
+                                  className="hidden"
+                                  onChange={(e) => handleDoodstreamUpload(e, activeSeasonIndex, eIdx)}
+                                  accept="video/*"
+                                />
+                                <label 
+                                  htmlFor={`ds-${activeSeasonIndex}-${eIdx}`}
+                                  className="flex items-center justify-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 rounded-xl h-10 px-4 text-[10px] font-bold cursor-pointer transition-all w-full text-yellow-500"
+                                >
+                                  {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 ? 'UPLOADING...' : 'DOODSTREAM'}
                                 </label>
                               </div>
                               {uploadProgress.episodes[`v-${activeSeasonIndex}-${eIdx}`] > 0 && (

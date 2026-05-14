@@ -11,6 +11,8 @@ import compression from 'compression';
 
 import animeRoutes from './routes/animeRoutes.js';
 import uploadTelegram from './routes/uploadTelegram.js';
+import uploadGofile from './routes/uploadGofile.js';
+import uploadDoodstream from './routes/uploadDoodstream.js';
 import Visitor from './models/Visitor.js';
 
 dotenv.config();
@@ -122,6 +124,8 @@ app.use('/api/animes', (req, res, next) => {
 }, animeRoutes);
 
 app.use('/api/upload-telegram', adminAuth, uploadTelegram);
+app.use('/api/upload-gofile', adminAuth, uploadGofile);
+app.use('/api/upload-doodstream', adminAuth, uploadDoodstream);
 
 // Use the stream routes (Public)
 app.use('/api/stream', streamRoutes);
