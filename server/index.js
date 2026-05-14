@@ -7,6 +7,7 @@ import { uploadRouter } from "./uploadthing.js";
 import { initTelegram } from './utils/telegram.js';
 import streamRoutes from './routes/stream.js';
 import jwt from 'jsonwebtoken';
+import compression from 'compression';
 
 import animeRoutes from './routes/animeRoutes.js';
 import uploadTelegram from './routes/uploadTelegram.js';
@@ -18,6 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+app.use(compression());
 app.use(cors({
   origin: [
     'https://anime-stream-inky.vercel.app', 

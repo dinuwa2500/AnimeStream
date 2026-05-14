@@ -11,7 +11,10 @@ router.get('/', async (req, res) => {
     if (q) {
       query = { title: { $regex: q, $options: 'i' } };
     }
-    const animes = await Anime.find(query).sort({ createdAt: -1 }).lean();
+    const animes = await Anime.find(query)
+      .select('title slug description posterUrl bannerUrl rating episodes status genres type releaseDate dubAvailable') // EXCLUDES the heavy 'seasons' array
+      .sort({ createdAt: -1 })
+      .lean();
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     res.json(animes);
   } catch (error) {
