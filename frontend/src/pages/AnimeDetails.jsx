@@ -6,6 +6,8 @@ import Navbar from '../components/Navbar';
 import VideoPlayer from '../components/VideoPlayer';
 import API_BASE_URL from '../api/config';
 import { useNavigate } from 'react-router-dom';
+import AdBanner from '../components/AdBanner';
+import AD_CONFIG from '../api/ads';
 
 const AnimeDetails = () => {
   const { id } = useParams();
@@ -98,104 +100,142 @@ const AnimeDetails = () => {
         </div>
       </div>
 
-      <main className="px-6 md:px-16 mt-12 grid lg:grid-cols-3 gap-12">
-        {/* Episodes Section */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Episodes</h2>
-            <div className="flex gap-2">
-              {anime.seasons?.map((s) => (
-                <button
-                  key={s.seasonNumber}
-                  onClick={() => setActiveSeason(s.seasonNumber)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                    activeSeason === s.seasonNumber 
-                      ? 'bg-primary text-white' 
-                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                  }`}
-                >
-                  Season {s.seasonNumber}
-                </button>
-              ))}
-            </div>
+      {/* Main Content Area with Side Ads */}
+      <div className="max-w-[1920px] mx-auto px-4 md:px-10 flex flex-col xl:flex-row gap-8 items-start justify-center">
+        
+        {/* Left Side Ad - Desktop */}
+        <aside className="hidden xl:block w-[350px] shrink-0 sticky top-24 pt-12">
+          <AdBanner type="square" zoneId={AD_CONFIG.DETAILS_LEFT} />
+          <div className="mt-8 p-6 glass rounded-2xl border border-white/5 text-center">
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mb-2">Support Us</p>
+            <p className="text-sm text-gray-400">Enjoying the site? Consider disabling adblock to help us keep the servers running!</p>
+          </div>
+        </aside>
+
+        <div className="flex-1 w-full max-w-6xl">
+          {/* Mobile/Tablet Ad Top */}
+          <div className="xl:hidden w-full flex justify-center mb-8">
+            <AdBanner type="square" zoneId={AD_CONFIG.DETAILS_MOBILE_TOP} />
           </div>
 
-          <div className="space-y-3">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeSeason}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="grid gap-3"
-              >
-                {anime.seasons?.find(s => s.seasonNumber === activeSeason)?.episodes.map((ep) => (
-                  <div 
-                    key={ep.episodeNumber}
-                    onClick={() => ep.videoUrl && setCurrentVideoUrl(ep.videoUrl)}
-                    className={`group flex items-center justify-between border p-4 rounded-2xl transition-all cursor-pointer ${
-                      currentVideoUrl === ep.videoUrl 
-                        ? 'bg-primary/10 border-primary/50' 
-                        : 'bg-white/5 border-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
-                        currentVideoUrl === ep.videoUrl ? 'bg-primary' : 'bg-background group-hover:bg-primary'
-                      }`}>
-                        <Play className={`w-4 h-4 transition-colors ${
-                          currentVideoUrl === ep.videoUrl ? 'text-white fill-current' : 'text-gray-400 group-hover:text-white'
-                        }`} />
-                      </div>
-                      <div>
-                        <h4 className={`font-bold text-sm ${currentVideoUrl === ep.videoUrl ? 'text-primary' : ''}`}>
-                          Episode {ep.episodeNumber}: {ep.title}
-                        </h4>
-                        <span className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">{ep.duration}</span>
-                      </div>
-                    </div>
-                    <ChevronRight className={`w-5 h-5 ${currentVideoUrl === ep.videoUrl ? 'text-primary' : 'text-gray-600'}`} />
-                  </div>
-                ))}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* Sidebar / Recommendations */}
-        <div className="space-y-8">
-          <h2 className="text-2xl font-bold">You might also like</h2>
-          <div className="grid gap-4">
-            {recommendations.map((rec) => (
-              <div 
-                key={rec._id} 
-                onClick={() => {
-                  navigate(`/anime/${rec.slug || rec._id}`);
-                  window.scrollTo(0, 0);
-                }}
-                className="flex gap-4 group cursor-pointer"
-              >
-                <div className="w-20 aspect-[3/4] rounded-xl overflow-hidden shrink-0 border border-white/5">
-                  <img src={rec.posterUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={rec.title} />
-                </div>
-                <div className="flex flex-col justify-center">
-                  <h4 className="font-bold text-sm group-hover:text-primary transition-colors line-clamp-1">{rec.title}</h4>
-                  <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">
-                    {Array.isArray(rec.genres) ? rec.genres.join(', ') : rec.genres}
-                  </p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                    <span className="text-[10px] font-bold">{rec.rating}</span>
-                  </div>
+          <main className="grid lg:grid-cols-3 gap-12">
+            {/* Episodes Section */}
+            <div className="lg:col-span-2 space-y-8">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Episodes</h2>
+                <div className="flex gap-2">
+                  {anime.seasons?.map((s) => (
+                    <button
+                      key={s.seasonNumber}
+                      onClick={() => setActiveSeason(s.seasonNumber)}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                        activeSeason === s.seasonNumber 
+                          ? 'bg-primary text-white' 
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      }`}
+                    >
+                      Season {s.seasonNumber}
+                    </button>
+                  ))}
                 </div>
               </div>
-            ))}
-            {recommendations.length === 0 && (
-              <p className="text-gray-500 text-sm italic">No other series found.</p>
-            )}
+
+              <div className="space-y-3">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSeason}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="grid gap-3"
+                  >
+                    {anime.seasons?.find(s => s.seasonNumber === activeSeason)?.episodes.map((ep) => (
+                      <div 
+                        key={ep.episodeNumber}
+                        onClick={() => ep.videoUrl && setCurrentVideoUrl(ep.videoUrl)}
+                        className={`group flex items-center justify-between border p-4 rounded-2xl transition-all cursor-pointer ${
+                          currentVideoUrl === ep.videoUrl 
+                            ? 'bg-primary/10 border-primary/50' 
+                            : 'bg-white/5 border-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${
+                            currentVideoUrl === ep.videoUrl ? 'bg-primary' : 'bg-background group-hover:bg-primary'
+                          }`}>
+                            <Play className={`w-4 h-4 transition-colors ${
+                              currentVideoUrl === ep.videoUrl ? 'text-white fill-current' : 'text-gray-400 group-hover:text-white'
+                            }`} />
+                          </div>
+                          <div>
+                            <h4 className={`font-bold text-sm ${currentVideoUrl === ep.videoUrl ? 'text-primary' : ''}`}>
+                              Episode {ep.episodeNumber}: {ep.title}
+                            </h4>
+                            <span className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">{ep.duration}</span>
+                          </div>
+                        </div>
+                        <ChevronRight className={`w-5 h-5 ${currentVideoUrl === ep.videoUrl ? 'text-primary' : 'text-gray-600'}`} />
+                      </div>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Sidebar / Recommendations */}
+            <div className="space-y-8">
+              <h2 className="text-2xl font-bold">You might also like</h2>
+              <div className="grid gap-4">
+                {recommendations.map((rec) => (
+                  <div 
+                    key={rec._id} 
+                    onClick={() => {
+                      navigate(`/anime/${rec.slug || rec._id}`);
+                      window.scrollTo(0, 0);
+                    }}
+                    className="flex gap-4 group cursor-pointer"
+                  >
+                    <div className="w-20 aspect-[3/4] rounded-xl overflow-hidden shrink-0 border border-white/5">
+                      <img src={rec.posterUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={rec.title} />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <h4 className="font-bold text-sm group-hover:text-primary transition-colors line-clamp-1">{rec.title}</h4>
+                      <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">
+                        {Array.isArray(rec.genres) ? rec.genres.join(', ') : rec.genres}
+                      </p>
+                      <div className="flex items-center gap-1 mt-2">
+                        <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                        <span className="text-[10px] font-bold">{rec.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {recommendations.length === 0 && (
+                  <p className="text-gray-500 text-sm italic">No other series found.</p>
+                )}
+              </div>
+            </div>
+          </main>
+
+          {/* Mobile/Tablet Ad Bottom */}
+          <div className="xl:hidden w-full flex justify-center mt-12">
+            <AdBanner type="square" zoneId={AD_CONFIG.DETAILS_MOBILE_BOTTOM} />
           </div>
         </div>
-      </main>
+
+        {/* Right Side Ad - Desktop */}
+        <aside className="hidden xl:block w-[350px] shrink-0 sticky top-24 pt-12">
+          <AdBanner type="square" zoneId={AD_CONFIG.DETAILS_RIGHT} />
+          <div className="mt-8 space-y-4">
+            <div className="p-6 glass rounded-2xl border border-white/5">
+              <h3 className="font-bold text-sm mb-2">Join our Discord</h3>
+              <p className="text-xs text-gray-400 mb-4">Connect with other anime fans and get instant update notifications.</p>
+              <button className="w-full py-2 bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-bold rounded-lg transition-colors">Join Community</button>
+            </div>
+          </div>
+        </aside>
+
+      </div>
     </div>
   );
 };

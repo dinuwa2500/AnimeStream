@@ -4,6 +4,8 @@ import Hero from '../components/Hero';
 import AnimeCard from '../components/AnimeCard';
 import { ChevronRight, Zap, TrendingUp, Clock ,Star } from 'lucide-react';
 import API_BASE_URL from '../api/config';
+import AdBanner from '../components/AdBanner';
+import AD_CONFIG from '../api/ads';
 
 const Home = () => {
   const [latestAnime, setLatestAnime] = useState([]);
@@ -38,6 +40,10 @@ const Home = () => {
     <div className="min-h-screen pb-20">
       <Navbar />
       <Hero anime={latestAnime[0]} />
+
+      <div className="px-6 md:px-16 -mt-8 relative z-30">
+        <AdBanner type="horizontal" zoneId={AD_CONFIG.HOME_TOP} />
+      </div>
 
       <main className="px-6 md:px-16 mt-12 space-y-16">
         {/* Recently Updated */}
