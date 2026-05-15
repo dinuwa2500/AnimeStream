@@ -30,7 +30,7 @@ const Admin = () => {
         title: 'Season 1',
         episodes: [{ 
           episodeNumber: 1, 
-          title: '', 
+          title: 'Episode 1', 
           videoUrl: '', 
           thumbnailUrl: '', 
           duration: '24m',
@@ -99,7 +99,7 @@ const Admin = () => {
           title: 'Season 1',
           episodes: [{ 
             episodeNumber: 1, 
-            title: '', 
+            title: 'Episode 1', 
             videoUrl: '', 
             thumbnailUrl: '', 
             duration: '24m',
@@ -121,7 +121,7 @@ const Admin = () => {
         {
           seasonNumber: animeData.seasons.length + 1,
           title: `Season ${animeData.seasons.length + 1}`,
-          episodes: [{ episodeNumber: 1, title: '', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
+          episodes: [{ episodeNumber: 1, title: 'Episode 1', videoUrl: '', thumbnailUrl: '', duration: '24m' }]
         }
       ]
     });
@@ -129,9 +129,10 @@ const Admin = () => {
 
   const handleAddEpisode = (seasonIndex) => {
     const newSeasons = [...animeData.seasons];
+    const nextEpNum = newSeasons[seasonIndex].episodes.length + 1;
     newSeasons[seasonIndex].episodes.push({
-      episodeNumber: newSeasons[seasonIndex].episodes.length + 1,
-      title: '',
+      episodeNumber: nextEpNum,
+      title: `Episode ${nextEpNum}`,
       videoUrl: '',
       thumbnailUrl: '',
       duration: '24m',
@@ -140,16 +141,14 @@ const Admin = () => {
     setAnimeData({ ...animeData, seasons: newSeasons });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const performSubmit = async (data) => {
     // Convert genres string to array if it's still a string
     const processedData = {
-      ...animeData,
-      genres: typeof animeData.genres === 'string' 
-        ? animeData.genres.split(',').map(g => g.trim()) 
-        : animeData.genres,
-      episodes: animeData.seasons.reduce((acc, s) => acc + (s.episodes?.length || 0), 0)
+      ...data,
+      genres: typeof data.genres === 'string' 
+        ? data.genres.split(',').map(g => g.trim()) 
+        : data.genres,
+      episodes: data.seasons.reduce((acc, s) => acc + (s.episodes?.length || 0), 0)
     };
 
     try {
@@ -166,17 +165,31 @@ const Admin = () => {
       });
 
       if (response.ok) {
-        alert(isEditing ? 'Anime updated successfully! 🚀' : 'Anime saved successfully! 🚀');
-        if (!isEditing) handleReset();
+        if (!isEditing) {
+          alert('Anime saved successfully! 🚀');
+          handleReset();
+        } else {
+          // Silent update for auto-saves, or you can keep the alert
+          console.log('Anime updated successfully!');
+        }
         fetchExistingAnimes();
+        return true;
       } else {
         const error = await response.json();
         alert(`Error: ${error.message}`);
+        return false;
       }
     } catch (error) {
       console.error('Submission error:', error);
       alert('Failed to connect to the server.');
+      return false;
     }
+  };
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const success = await performSubmit(animeData);
+    if (success && isEditing) alert('Anime updated successfully! 🚀');
   };
 
   const uploadToGofile = (file, sIdx, eIdx) => {
@@ -222,7 +235,12 @@ const Admin = () => {
       // Store the Gofile download page as the video URL
       newSeasons[sIdx].episodes[eIdx].videoUrl = res.downloadPage;
       
-      setAnimeData({ ...animeData, seasons: newSeasons });
+      const updatedData = { ...animeData, seasons: newSeasons };
+      setAnimeData(updatedData);
+      
+      // Automatically update the series in the database
+      if (isEditing) await performSubmit(updatedData);
+      
       alert("Uploaded to Gofile! 🚀");
     } catch (error) {
       alert("Error: " + error.message);
@@ -278,7 +296,12 @@ const Admin = () => {
       // Store the DoodStream embed URL as the video URL
       newSeasons[sIdx].episodes[eIdx].videoUrl = res.embedUrl;
       
-      setAnimeData({ ...animeData, seasons: newSeasons });
+      const updatedData = { ...animeData, seasons: newSeasons };
+      setAnimeData(updatedData);
+
+      // Automatically update the series in the database
+      if (isEditing) await performSubmit(updatedData);
+
       alert("Uploaded to DoodStream! 🚀");
     } catch (error) {
       alert("Error: " + error.message);
@@ -342,7 +365,12 @@ const Admin = () => {
       const streamUrl = `/api/stream/${res.fileId}/${res.accessHash}/${res.fileReference}?mid=${res.messageId}&pid=${res.peerId}`;
       newSeasons[sIdx].episodes[eIdx].videoUrl = streamUrl;
       
-      setAnimeData({ ...animeData, seasons: newSeasons });
+      const updatedData = { ...animeData, seasons: newSeasons };
+      setAnimeData(updatedData);
+
+      // Automatically update the series in the database
+      if (isEditing) await performSubmit(updatedData);
+
       alert("Uploaded to Telegram! 🚀");
     } catch (error) {
       alert("Error: " + error.message);
@@ -847,10 +875,15 @@ const Admin = () => {
                                     thumbnails: { ...prev.thumbnails, [`t-${activeSeasonIndex}-${eIdx}`]: progress }
                                   }));
                                 }}
-                                onClientUploadComplete={(res) => {
+                                onClientUploadComplete={async (res) => {
                                   const newSeasons = [...animeData.seasons];
                                   newSeasons[activeSeasonIndex].episodes[eIdx].thumbnailUrl = res[0].url;
-                                  setAnimeData({...animeData, seasons: newSeasons});
+                                  const updatedData = { ...animeData, seasons: newSeasons };
+                                  setAnimeData(updatedData);
+
+                                  // Automatically update the series in the database
+                                  if (isEditing) await performSubmit(updatedData);
+
                                   setUploadProgress(prev => {
                                     const newThumbs = { ...prev.thumbnails };
                                     delete newThumbs[`t-${activeSeasonIndex}-${eIdx}`];
