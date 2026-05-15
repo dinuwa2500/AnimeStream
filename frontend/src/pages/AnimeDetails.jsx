@@ -12,6 +12,8 @@ import AD_CONFIG from '../api/ads';
 const AnimeDetails = () => {
   const { id } = useParams();
   const [activeSeason, setActiveSeason] = useState(1);
+  const [episodeChunkIndex, setEpisodeChunkIndex] = useState(0);
+  const CHUNK_SIZE = 50;
   const [currentVideoUrl, setCurrentVideoUrl] = useState(null);
   const [anime, setAnime] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
@@ -47,6 +49,10 @@ const AnimeDetails = () => {
 
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    setEpisodeChunkIndex(0);
+  }, [activeSeason]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!anime) return <div className="min-h-screen flex items-center justify-center">Anime not found</div>;
@@ -140,16 +146,42 @@ const AnimeDetails = () => {
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-6">
+                {/* Episode Chunk Tabs */}
+                {anime.seasons?.find(s => s.seasonNumber === activeSeason)?.episodes.length > CHUNK_SIZE && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {Array.from({ length: Math.ceil((anime.seasons?.find(s => s.seasonNumber === activeSeason)?.episodes.length || 0) / CHUNK_SIZE) }).map((_, idx) => {
+                      const start = idx * CHUNK_SIZE + 1;
+                      const end = Math.min((idx + 1) * CHUNK_SIZE, anime.seasons?.find(s => s.seasonNumber === activeSeason)?.episodes.length || 0);
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => setEpisodeChunkIndex(idx)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            episodeChunkIndex === idx 
+                              ? 'bg-primary/20 text-primary border border-primary/30' 
+                              : 'bg-white/5 text-gray-400 border border-white/5 hover:bg-white/10'
+                          }`}
+                        >
+                          Episodes {start}-{end}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={activeSeason}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="grid gap-3"
+                    key={`${activeSeason}-${episodeChunkIndex}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="grid gap-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar"
                   >
-                    {anime.seasons?.find(s => s.seasonNumber === activeSeason)?.episodes.map((ep) => (
+                    {anime.seasons?.find(s => s.seasonNumber === activeSeason)?.episodes
+                      .slice(episodeChunkIndex * CHUNK_SIZE, (episodeChunkIndex + 1) * CHUNK_SIZE)
+                      .map((ep) => (
                       <div 
                         key={ep.episodeNumber}
                         onClick={() => ep.videoUrl && setCurrentVideoUrl(ep.videoUrl)}
