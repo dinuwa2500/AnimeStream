@@ -14,6 +14,7 @@ import uploadTelegram from './routes/uploadTelegram.js';
 import uploadGofile from './routes/uploadGofile.js';
 import uploadDoodstream from './routes/uploadDoodstream.js';
 import Visitor from './models/Visitor.js';
+import { startBot } from './utils/doodstream-bot.js';
 
 dotenv.config();
 
@@ -194,6 +195,18 @@ const healthCheck = (req, res) => {
 
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
+
+// DoodStream Keep-Alive Cron (Triggered by Vercel)
+app.get('/api/cron/doodbot', async (req, res) => {
+  console.log('⏰ Cron triggered: DoodStream Keep-Alive');
+  try {
+    await startBot();
+    res.json({ success: true, message: 'Bot execution started/finished' });
+  } catch (err) {
+    console.error('❌ Cron failed:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Background initialization
 initTelegram().catch(err => console.error("Telegram init failed:", err));
