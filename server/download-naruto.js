@@ -3,10 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import ffmpegStatic from 'ffmpeg-static';
 
-const START_EPISODE = 1;
-const END_EPISODE = 200;
+const START_EPISODE =201;
+const END_EPISODE =311;
 const RESOLUTION = '720';
-const SERIES_NAME = 'naruto';
+const SERIES_NAME = 'naruto-shippuden';
 const BASE_URL = `https://hlsxst1.burntburst45.store/${SERIES_NAME}`;
 const DOWNLOAD_DIR = path.join(process.cwd(), 'downloads');
 

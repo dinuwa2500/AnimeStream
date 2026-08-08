@@ -9,6 +9,12 @@ const router = express.Router();
 // Setup Multer for temporary storage
 const upload = multer({ dest: '/tmp' });
 
+const progressMap = new Map();
+
+router.get('/progress/:id', (req, res) => {
+  res.json({ progress: progressMap.get(req.params.id) || 0 });
+});
+
 router.post('/', upload.single('video'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded');
 
@@ -41,11 +47,16 @@ router.post('/', upload.single('video'), async (req, res) => {
 
     const fileStream = fs.createReadStream(req.file.path);
     
+    const uploadId = req.query.uploadId;
+
     // Log progress to terminal
     fileStream.on('data', (chunk) => {
         uploadedSize += chunk.length;
         const percent = ((uploadedSize / totalSize) * 100).toFixed(2);
         process.stdout.write(`\r🚀 DoodStream Upload: ${percent}% [${(uploadedSize / 1024 / 1024).toFixed(2)}MB / ${(totalSize / 1024 / 1024).toFixed(2)}MB]`);
+        if (uploadId) {
+            progressMap.set(uploadId, parseFloat(percent));
+        }
     });
 
     form.append('file', fileStream, {
@@ -91,6 +102,7 @@ router.post('/', upload.single('video'), async (req, res) => {
 
     // Cleanup local file
     if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    if (uploadId) progressMap.delete(uploadId);
 
     if (uploadRes.data && uploadRes.data.status === 200) {
       console.log("✅ DoodStream Upload Done!");
@@ -108,6 +120,7 @@ router.post('/', upload.single('video'), async (req, res) => {
   } catch (error) {
     console.error('DoodStream Upload Error:', error.message);
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    if (req.query.uploadId) progressMap.delete(req.query.uploadId);
     res.status(500).json({ error: error.message || 'Upload failed' });
   }
 });

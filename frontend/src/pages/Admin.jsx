@@ -258,21 +258,41 @@ const Admin = () => {
       const formData = new FormData();
       formData.append('video', file);
 
+      const uploadId = Date.now().toString() + Math.random().toString(36).substring(7);
+
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${API_BASE_URL}/upload-doodstream`, true);
+      xhr.open('POST', `${API_BASE_URL}/upload-doodstream?uploadId=${uploadId}`, true);
       xhr.setRequestHeader('admin-token', sessionStorage.getItem('adminToken'));
+
+      let pollInterval;
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
+          const progress = Math.round((event.loaded / event.total) * 50);
           setUploadProgress(prev => ({
             ...prev,
             episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: progress }
           }));
+
+          if (progress === 50 && !pollInterval) {
+             pollInterval = setInterval(async () => {
+                 try {
+                     const res = await fetch(`${API_BASE_URL}/upload-doodstream/progress/${uploadId}`);
+                     const data = await res.json();
+                     if (data.progress) {
+                        setUploadProgress(prev => ({
+                          ...prev,
+                          episodes: { ...prev.episodes, [`v-${sIdx}-${eIdx}`]: 50 + Math.floor(data.progress / 2) }
+                        }));
+                     }
+                 } catch(e) {}
+             }, 1000);
+          }
         }
       };
 
       xhr.onload = () => {
+        if (pollInterval) clearInterval(pollInterval);
         if (xhr.status === 200) {
           resolve(JSON.parse(xhr.responseText));
         } else {
@@ -280,7 +300,10 @@ const Admin = () => {
         }
       };
 
-      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.onerror = () => {
+        if (pollInterval) clearInterval(pollInterval);
+        reject(new Error('Network error'));
+      };
       xhr.send(formData);
     });
   };

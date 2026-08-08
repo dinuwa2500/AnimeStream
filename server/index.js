@@ -24,18 +24,11 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(compression());
 app.use(cors({
-  origin: [
-    'https://anime-stream-inky.vercel.app', 
-    'https://animezstream.netlify.app',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'http://localhost:5174'
-  ],
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'admin-token', 'x-stats-password'],
   credentials: true
 }));
+app.options('*', cors());
 app.use(express.json());
 
 // Database Connection Optimization for Serverless

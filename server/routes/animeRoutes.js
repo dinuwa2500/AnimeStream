@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     }
     const animes = await Anime.find(query)
       .select('title slug description posterUrl bannerUrl rating episodes status genres type releaseDate dubAvailable') // EXCLUDES the heavy 'seasons' array
-      .sort({ createdAt: -1 })
+      .sort({ updatedAt: -1 })
       .lean();
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     res.json(animes);
