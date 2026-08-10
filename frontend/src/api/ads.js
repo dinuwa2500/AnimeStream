@@ -1,12 +1,14 @@
-// A-Ads (aads.com) Configuration
-// Replace these with your actual zone IDs from the A-Ads dashboard
+// Ad Banner Configuration
 
 export const AD_CONFIG = {
-  HOME_TOP: "2437734", // 728x90 top ad
-  DETAILS_LEFT: 2437739, 
-  DETAILS_RIGHT: 2437739, 
-  DETAILS_MOBILE_TOP: null,
-  DETAILS_MOBILE_BOTTOM: null,
+  ADSTERRA_HORIZONTAL: "e921f26fa00b7fd1cea47824628fe08e", // 728x90 Adsterra Key
+  ADSTERRA_SQUARE: "500a342be06f35741c1e2cf652bd04b5",     // 300x250 Adsterra Key
+  BANNER_ID: "2026165", // mbidadm Banner ID
+  HOME_TOP: "e921f26fa00b7fd1cea47824628fe08e",
+  DETAILS_LEFT: "500a342be06f35741c1e2cf652bd04b5", 
+  DETAILS_RIGHT: "500a342be06f35741c1e2cf652bd04b5", 
+  DETAILS_MOBILE_TOP: "500a342be06f35741c1e2cf652bd04b5",
+  DETAILS_MOBILE_BOTTOM: "500a342be06f35741c1e2cf652bd04b5",
 };
 
 export default AD_CONFIG;

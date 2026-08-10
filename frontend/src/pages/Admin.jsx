@@ -453,13 +453,13 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-24 px-6 md:px-16 pb-20">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-4 gap-8">
+      <div className="pt-20 sm:pt-24 px-4 sm:px-8 md:px-16 pb-20">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-4 gap-6 lg:gap-8">
           
           {/* Sidebar - Existing Anime */}
           <div className="lg:col-span-1 space-y-4">
             <div className="flex items-center justify-between px-2">
-              <h2 className="text-lg font-bold flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                 <List className="w-5 h-5 text-primary" /> EXISTING
               </h2>
               <button 
@@ -470,7 +470,7 @@ const Admin = () => {
                 <Plus className="w-5 h-5" />
               </button>
             </div>
-            <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 max-h-[300px] lg:max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
               {Array.isArray(existingAnimes) && existingAnimes.length > 0 ? (
                 existingAnimes.map((anime) => (
                   <div 
@@ -484,7 +484,7 @@ const Admin = () => {
                       <img src={anime.posterUrl} className="w-full h-full object-cover" alt="" />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h4 className="font-bold text-[13px] truncate group-hover:text-primary transition-colors">{anime.title}</h4>
+                      <h4 className="font-bold text-xs sm:text-[13px] truncate group-hover:text-primary transition-colors">{anime.title}</h4>
                       <p className="text-[9px] text-gray-500 uppercase font-black tracking-tighter mt-0.5">
                         {anime.seasons?.length || 0} Seasons • {anime.episodes || anime.seasons?.reduce((acc, s) => acc + (s.episodes?.length || 0), 0) || 0} Eps
                       </p>
@@ -498,13 +498,13 @@ const Admin = () => {
           </div>
 
           {/* Main Content - Form */}
-          <div className="lg:col-span-3 space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="lg:col-span-3 space-y-6 sm:space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+                <h1 className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
                   {isEditing ? 'EDITING SERIES' : 'ADD NEW SERIES'}
                 </h1>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">
+                <p className="text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest mt-1">
                   {isEditing ? `Editing: ${animeData.title}` : 'Initialize a new anime project'}
                 </p>
               </div>
@@ -512,14 +512,14 @@ const Admin = () => {
                 {isEditing && (
                   <button 
                     onClick={handleReset}
-                    className="bg-white/5 hover:bg-white/10 px-4 py-3 rounded-xl text-[10px] font-bold transition-all border border-white/10 uppercase tracking-widest"
+                    className="bg-white/5 hover:bg-white/10 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-[10px] font-bold transition-all border border-white/10 uppercase tracking-widest"
                   >
                     Cancel Edit
                   </button>
                 )}
                 <button 
                   onClick={handleSubmit}
-                  className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 uppercase text-xs"
+                  className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 uppercase text-xs"
                 >
                   <Save className="w-4 h-4" />
                   {isEditing ? 'Update Series' : 'Save Anime'}
@@ -527,48 +527,48 @@ const Admin = () => {
               </div>
             </div>
 
-          <form className="space-y-8">
+          <form className="space-y-6 sm:space-y-8">
             {/* Basic Info Section */}
-            <div className="glass rounded-3xl p-8 space-y-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
+            <div className="glass rounded-2xl sm:rounded-3xl p-5 sm:p-8 space-y-6">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-primary" /> General Information
               </h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Anime Title</label>
+                  <label className="text-xs sm:text-sm font-medium text-gray-400">Anime Title</label>
                   <input 
                     type="text" 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-primary/50"
                     placeholder="e.g. Solo Leveling"
                     value={animeData.title}
                     onChange={(e) => setAnimeData({...animeData, title: e.target.value})}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Genres (Comma separated)</label>
+                  <label className="text-xs sm:text-sm font-medium text-gray-400">Genres (Comma separated)</label>
                   <input 
                     type="text" 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-primary/50"
                     placeholder="Action, Fantasy, Adventure"
                     value={animeData.genres}
                     onChange={(e) => setAnimeData({...animeData, genres: e.target.value})}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Rating</label>
+                  <label className="text-xs sm:text-sm font-medium text-gray-400">Rating</label>
                   <input 
                     type="number" 
                     step="0.1"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-primary/50"
                     placeholder="e.g. 9.8"
                     value={animeData.rating}
                     onChange={(e) => setAnimeData({...animeData, rating: e.target.value})}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Status</label>
+                  <label className="text-xs sm:text-sm font-medium text-gray-400">Status</label>
                   <select 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-primary/50"
                     value={animeData.status}
                     onChange={(e) => setAnimeData({...animeData, status: e.target.value})}
                   >
@@ -577,9 +577,9 @@ const Admin = () => {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Type</label>
+                  <label className="text-xs sm:text-sm font-medium text-gray-400">Type</label>
                   <select 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-primary/50"
                     value={animeData.type}
                     onChange={(e) => setAnimeData({...animeData, type: e.target.value})}
                   >
@@ -589,19 +589,19 @@ const Admin = () => {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Release Date</label>
+                  <label className="text-xs sm:text-sm font-medium text-gray-400">Release Date</label>
                   <input 
                     type="date" 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-primary/50"
                     value={animeData.releaseDate}
                     onChange={(e) => setAnimeData({...animeData, releaseDate: e.target.value})}
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Description</label>
+                <label className="text-xs sm:text-sm font-medium text-gray-400">Description</label>
                 <textarea 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-primary/50 h-32"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-primary/50 h-28 sm:h-32"
                   placeholder="Enter anime plot summary..."
                   value={animeData.description}
                   onChange={(e) => setAnimeData({...animeData, description: e.target.value})}
@@ -609,10 +609,10 @@ const Admin = () => {
               </div>
 
               {/* Upload Section */}
-              <div className="grid md:grid-cols-2 gap-8 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                 <div className="space-y-4">
-                  <label className="text-sm font-medium text-gray-400">Poster Image</label>
-                  <div className="border-2 border-dashed border-white/10 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 bg-white/5">
+                  <label className="text-xs sm:text-sm font-medium text-gray-400">Poster Image</label>
+                  <div className="border-2 border-dashed border-white/10 rounded-2xl p-4 sm:p-8 flex flex-col items-center justify-center gap-4 bg-white/5">
                     <UploadButton
                       endpoint="imageUploader"
                       url={`${API_BASE_URL}/uploadthing`}
@@ -647,8 +647,8 @@ const Admin = () => {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <label className="text-sm font-medium text-gray-400">Banner Image</label>
-                  <div className="border-2 border-dashed border-white/10 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 bg-white/5">
+                  <label className="text-xs sm:text-sm font-medium text-gray-400">Banner Image</label>
+                  <div className="border-2 border-dashed border-white/10 rounded-2xl p-4 sm:p-8 flex flex-col items-center justify-center gap-4 bg-white/5">
                     <UploadButton
                       endpoint="bannerUploader"
                       url={`${API_BASE_URL}/uploadthing`}
@@ -686,27 +686,27 @@ const Admin = () => {
             </div>
 
             <div className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                   <List className="w-6 h-6 text-primary" /> Seasons & Episodes
                 </h2>
                 <button 
                   type="button"
                   onClick={handleAddSeason}
-                  className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  className="flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-4 py-2 rounded-xl text-xs font-bold transition-all"
                 >
                   <Plus className="w-4 h-4" /> ADD NEW SEASON
                 </button>
               </div>
 
               {/* Season Tabs */}
-              <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto custom-scrollbar">
+              <div className="flex gap-2 pb-2 overflow-x-auto custom-scrollbar">
                 {animeData.seasons?.map((season, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setActiveSeasonIndex(idx)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
                       activeSeasonIndex === idx ? 'bg-primary text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'
                     }`}
                   >
@@ -717,7 +717,8 @@ const Admin = () => {
 
               {/* Active Season Episodes */}
               {animeData.seasons[activeSeasonIndex] && (
-                <div className="glass rounded-3xl p-8 space-y-6 border-l-4 border-primary animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="glass rounded-2xl sm:rounded-3xl p-4 sm:p-8 space-y-6 border-l-4 border-primary animate-in fade-in slide-in-from-bottom-4 duration-500">
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="bg-primary/20 w-12 h-12 rounded-2xl flex items-center justify-center">

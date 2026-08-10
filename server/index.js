@@ -14,6 +14,7 @@ import uploadTelegram from './routes/uploadTelegram.js';
 import uploadGofile from './routes/uploadGofile.js';
 import uploadDoodstream from './routes/uploadDoodstream.js';
 import Visitor from './models/Visitor.js';
+import Anime from './models/Anime.js';
 import { startBot } from './utils/doodstream-bot.js';
 
 dotenv.config();
@@ -189,15 +190,46 @@ const healthCheck = (req, res) => {
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
 
-// DoodStream Keep-Alive Cron (Triggered by Vercel)
-app.get('/api/cron/doodbot', async (req, res) => {
-  console.log('⏰ Cron triggered: DoodStream Keep-Alive');
+// SEO Dynamic Robots.txt
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send(
+`User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /stats
+Disallow: /api/
+
+Sitemap: https://animezstream.netlify.app/sitemap.xml`
+  );
+});
+
+// SEO Dynamic Sitemap.xml
+app.get(['/sitemap.xml', '/api/sitemap.xml'], async (req, res) => {
   try {
-    await startBot();
-    res.json({ success: true, message: 'Bot execution started/finished' });
-  } catch (err) {
-    console.error('❌ Cron failed:', err);
-    res.status(500).json({ success: false, error: err.message });
+    const animes = await Anime.find({}, 'slug _id updatedAt').lean();
+    const baseUrl = 'https://animezstream.netlify.app';
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+    // Static pages
+    xml += `  <url>\n    <loc>${baseUrl}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+
+    // Anime pages
+    animes.forEach(item => {
+      const slugOrId = item.slug || item._id;
+      const lastMod = item.updatedAt ? new Date(item.updatedAt).toISOString() : new Date().toISOString();
+      xml += `  <url>\n    <loc>${baseUrl}/anime/${slugOrId}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+    });
+
+    xml += `</urlset>`;
+
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (error) {
+    console.error('Sitemap error:', error);
+    res.status(500).send('Error generating sitemap');
   }
 });
 

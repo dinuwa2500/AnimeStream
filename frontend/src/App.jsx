@@ -27,6 +27,7 @@ function App() {
           <Route path="/anime/:id" element={<AnimeDetails />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="*" element={<Home />} />
         </Routes>
       </Router>
     </HelmetProvider>
