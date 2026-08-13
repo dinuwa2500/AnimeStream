@@ -207,20 +207,46 @@ Sitemap: https://animezstream.netlify.app/sitemap.xml`
 // SEO Dynamic Sitemap.xml
 app.get(['/sitemap.xml', '/api/sitemap.xml'], async (req, res) => {
   try {
-    const animes = await Anime.find({}, 'slug _id updatedAt').lean();
+    const animes = await Anime.find({}, 'slug _id updatedAt type contentType status posterUrl title').lean();
     const baseUrl = 'https://animezstream.netlify.app';
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n`;
+    xml += `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
 
     // Static pages
     xml += `  <url>\n    <loc>${baseUrl}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
 
-    // Anime pages
+    // Dynamic content pages
     animes.forEach(item => {
       const slugOrId = item.slug || item._id;
       const lastMod = item.updatedAt ? new Date(item.updatedAt).toISOString() : new Date().toISOString();
-      xml += `  <url>\n    <loc>${baseUrl}/anime/${slugOrId}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+
+      // Priority: Movies get 0.9, TV series/Anime get 0.8, OVAs get 0.7
+      let priority = '0.8';
+      if (item.type === 'Movie' || item.contentType === 'Movie') priority = '0.9';
+      else if (item.type === 'OVA') priority = '0.7';
+
+      // Changefreq: Ongoing series update frequently, finished ones rarely
+      const changefreq = item.status === 'Ongoing' ? 'daily' : 'monthly';
+
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}/anime/${slugOrId}</loc>\n`;
+      xml += `    <lastmod>${lastMod}</lastmod>\n`;
+      xml += `    <changefreq>${changefreq}</changefreq>\n`;
+      xml += `    <priority>${priority}</priority>\n`;
+
+      // Google Image Sitemap extension — improves image search indexing
+      if (item.posterUrl) {
+        const safeTitle = (item.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const safeImageUrl = item.posterUrl.replace(/&/g, '&amp;');
+        xml += `    <image:image>\n`;
+        xml += `      <image:loc>${safeImageUrl}</image:loc>\n`;
+        xml += `      <image:title>${safeTitle}</image:title>\n`;
+        xml += `    </image:image>\n`;
+      }
+
+      xml += `  </url>\n`;
     });
 
     xml += `</urlset>`;

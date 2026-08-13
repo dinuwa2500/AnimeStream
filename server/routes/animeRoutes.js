@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
       query = { title: { $regex: q, $options: 'i' } };
     }
     const animes = await Anime.find(query)
-      .select('title slug description posterUrl bannerUrl rating episodes status genres type releaseDate dubAvailable') // EXCLUDES the heavy 'seasons' array
+      .select('title slug description posterUrl bannerUrl rating episodes status genres type contentType releaseDate dubAvailable subAvailable metaTitle metaDescription') // EXCLUDES the heavy 'seasons' array
       .sort({ updatedAt: -1 })
       .lean();
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');

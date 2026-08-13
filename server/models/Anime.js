@@ -12,8 +12,13 @@ const animeSchema = new mongoose.Schema({
   genres: [{ type: String }],
   releaseDate: { type: Date },
   type: { type: String, enum: ['TV', 'Movie', 'OVA'], default: 'TV' },
+  // Content origin — used to pick the correct SEO copy & Schema.org @type
+  contentType: { type: String, enum: ['Anime', 'TV Series', 'Movie'], default: 'Anime' },
   dubAvailable: { type: Boolean, default: false },
   subAvailable: { type: Boolean, default: true },
+  // Optional admin-overrides for SEO meta tags
+  metaTitle: { type: String, default: '' },
+  metaDescription: { type: String, default: '' },
   seasons: [{
     seasonNumber: { type: Number, required: true },
     title: { type: String },
